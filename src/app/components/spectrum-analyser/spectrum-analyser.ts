@@ -11,6 +11,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioEngineService } from '../../services/audio-engine.service';
+import { VfdSettingsService } from '../../services/vfd-settings.service';
 import { FREQUENCY_BANDS_24, VisualizerLayout, VisualizerTheme, PeakHoldMode } from '../../models/audio.models';
 
 interface ColorPalette {
@@ -94,14 +95,16 @@ export class SpectrumAnalyserComponent implements AfterViewInit, OnDestroy {
   protected readonly audioEngine = inject(AudioEngineService);
   protected readonly bands = FREQUENCY_BANDS_24;
 
-  // Settings
-  public readonly layout = signal<VisualizerLayout>('split');
-  public readonly theme = signal<VisualizerTheme>('vfd-cyan');
-  public readonly peakHold = signal<PeakHoldMode>('normal');
-  public readonly sensitivity = signal<number>(1.2);
-  public readonly segmentCount = signal<number>(16);
-  public readonly ghostSegments = signal<boolean>(true);
-  public readonly showGrid = signal<boolean>(true);
+  protected readonly vfdSettings = inject(VfdSettingsService);
+
+  // Settings synced across all Hi-Fi separates
+  public readonly layout = this.vfdSettings.layout;
+  public readonly theme = this.vfdSettings.theme;
+  public readonly peakHold = this.vfdSettings.peakHold;
+  public readonly sensitivity = this.vfdSettings.sensitivity;
+  public readonly segmentCount = this.vfdSettings.segmentCount;
+  public readonly ghostSegments = this.vfdSettings.ghostSegments;
+  public readonly showGrid = this.vfdSettings.showGrid;
 
   // Settings dropdown menu visibility
   public readonly isSettingsMenuOpen = signal<boolean>(false);
@@ -157,15 +160,15 @@ export class SpectrumAnalyserComponent implements AfterViewInit, OnDestroy {
   }
 
   public setLayout(val: VisualizerLayout): void {
-    this.layout.set(val);
+    this.vfdSettings.setLayout(val);
   }
 
   public setTheme(val: VisualizerTheme): void {
-    this.theme.set(val);
+    this.vfdSettings.setTheme(val);
   }
 
   public setPeakHold(val: PeakHoldMode): void {
-    this.peakHold.set(val);
+    this.vfdSettings.setPeakHold(val);
   }
 
   private setupResizeObserver(): void {
@@ -259,19 +262,19 @@ export class SpectrumAnalyserComponent implements AfterViewInit, OnDestroy {
   public toggleTheme(): void {
     const themes: VisualizerTheme[] = ['vfd-cyan', 'kenwood-amber', 'technics-green', 'ice-blue'];
     const idx = themes.indexOf(this.theme());
-    this.theme.set(themes[(idx + 1) % themes.length]);
+    this.vfdSettings.setTheme(themes[(idx + 1) % themes.length]);
   }
 
   public togglePeakHold(): void {
     const modes: PeakHoldMode[] = ['normal', 'slow', 'infinite', 'off'];
     const idx = modes.indexOf(this.peakHold());
-    this.peakHold.set(modes[(idx + 1) % modes.length]);
+    this.vfdSettings.setPeakHold(modes[(idx + 1) % modes.length]);
   }
 
   public adjustSensitivity(delta: number): void {
     const current = this.sensitivity();
     const updated = Math.max(0.4, Math.min(2.5, current + delta));
-    this.sensitivity.set(Math.round(updated * 10) / 10);
+    this.vfdSettings.setSensitivity(Math.round(updated * 10) / 10);
   }
 
   /**

@@ -7,6 +7,7 @@ import { JellyfinBrowserComponent } from './components/jellyfin-browser/jellyfin
 import { QueueDrawerComponent } from './components/queue-drawer/queue-drawer';
 import { AudioEngineService } from './services/audio-engine.service';
 import { JellyfinService } from './services/jellyfin.service';
+import { VfdSettingsService } from './services/vfd-settings.service';
 
 @Component({
   selector: 'app-root',
@@ -25,6 +26,7 @@ import { JellyfinService } from './services/jellyfin.service';
 export class App {
   protected readonly audioEngine = inject(AudioEngineService);
   protected readonly jellyfin = inject(JellyfinService);
+  public readonly vfdSettings = inject(VfdSettingsService);
 
   public readonly showJellyfinModal = signal<boolean>(false);
   public readonly showQueueDrawer = signal<boolean>(false);

@@ -47,7 +47,7 @@ export const BBC_RADIO_PRESETS: BbcRadioPreset[] = [
     brandColor: '#ff8800',
     logoBg: '#ff6600',
     logoColor: '#ffffff',
-    streamUrl: 'https://as-hls-ww-live.akamaized.net/pool_01505109/live/ww/bbc_radio_two/bbc_radio_two.isml/bbc_radio_two-audio=96000.norewind.m3u8',
+    streamUrl: 'https://as-hls-ww-live.akamaized.net/pool_74208725/live/ww/bbc_radio_two/bbc_radio_two.isml/bbc_radio_two-audio=96000.norewind.m3u8',
     fallbackType: 'rock'
   },
   {
@@ -63,7 +63,7 @@ export const BBC_RADIO_PRESETS: BbcRadioPreset[] = [
     brandColor: '#ff2d55',
     logoBg: '#b31b38',
     logoColor: '#ffffff',
-    streamUrl: 'https://as-hls-ww-live.akamaized.net/pool_01505109/live/ww/bbc_radio_three/bbc_radio_three.isml/bbc_radio_three-audio=96000.norewind.m3u8',
+    streamUrl: 'https://as-hls-ww-live.akamaized.net/pool_23461179/live/ww/bbc_radio_three/bbc_radio_three.isml/bbc_radio_three-audio=96000.norewind.m3u8',
     fallbackType: 'classical'
   },
   {
@@ -79,7 +79,7 @@ export const BBC_RADIO_PRESETS: BbcRadioPreset[] = [
     brandColor: '#38bdf8',
     logoBg: '#005596',
     logoColor: '#ffffff',
-    streamUrl: 'https://as-hls-ww-live.akamaized.net/pool_01505109/live/ww/bbc_radio_fourfm/bbc_radio_fourfm.isml/bbc_radio_fourfm-audio=96000.norewind.m3u8',
+    streamUrl: 'https://as-hls-ww-live.akamaized.net/pool_55057080/live/ww/bbc_radio_fourfm/bbc_radio_fourfm.isml/bbc_radio_fourfm-audio=96000.norewind.m3u8',
     fallbackType: 'speech'
   },
   {
@@ -95,7 +95,7 @@ export const BBC_RADIO_PRESETS: BbcRadioPreset[] = [
     brandColor: '#22c55e',
     logoBg: '#008542',
     logoColor: '#ffffff',
-    streamUrl: 'https://as-hls-ww-live.akamaized.net/pool_01505109/live/ww/bbc_radio_five_live/bbc_radio_five_live.isml/bbc_radio_five_live-audio=96000.norewind.m3u8',
+    streamUrl: 'https://as-hls-ww-live.akamaized.net/pool_89021708/live/ww/bbc_radio_five_live/bbc_radio_five_live.isml/bbc_radio_five_live-audio=96000.norewind.m3u8',
     fallbackType: 'speech'
   },
   {
@@ -111,7 +111,7 @@ export const BBC_RADIO_PRESETS: BbcRadioPreset[] = [
     brandColor: '#c084fc',
     logoBg: '#592c82',
     logoColor: '#ffffff',
-    streamUrl: 'http://as-hls-ww-live.akamaized.net/pool_81827798/live/ww/bbc_6music/bbc_6music.isml/bbc_6music-audio=96000.m3u8',
+    streamUrl: 'https://as-hls-ww-live.akamaized.net/pool_81827798/live/ww/bbc_6music/bbc_6music.isml/bbc_6music-audio=96000.m3u8',
     fallbackType: 'alternative'
   },
   {
@@ -127,7 +127,7 @@ export const BBC_RADIO_PRESETS: BbcRadioPreset[] = [
     brandColor: '#ffcc00',
     logoBg: '#111111',
     logoColor: '#f59e0b',
-    streamUrl: 'https://as-hls-ww-live.akamaized.net/pool_01505109/live/ww/bbc_1xtra/bbc_1xtra.isml/bbc_1xtra-audio=96000.norewind.m3u8',
+    streamUrl: 'https://as-hls-ww-live.akamaized.net/pool_92079267/live/ww/bbc_1xtra/bbc_1xtra.isml/bbc_1xtra-audio=96000.norewind.m3u8',
     fallbackType: 'urban'
   },
   {
@@ -143,7 +143,7 @@ export const BBC_RADIO_PRESETS: BbcRadioPreset[] = [
     brandColor: '#ff2d55',
     logoBg: '#cc0000',
     logoColor: '#ffffff',
-    streamUrl: 'http://stream.live.vc.bbcmedia.co.uk/bbc_world_service',
+    streamUrl: 'https://stream.live.vc.bbcmedia.co.uk/bbc_world_service',
     fallbackType: 'speech'
   }
 ];

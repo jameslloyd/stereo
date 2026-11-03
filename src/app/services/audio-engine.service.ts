@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import Hls from 'hls.js';
 import { FREQUENCY_BANDS_24, FrequencyBand, Track } from '../models/audio.models';
 import { SynthGeneratorService } from './synth-generator.service';
 
@@ -19,6 +20,7 @@ export class AudioEngineService {
   private masterGainNode: GainNode | null = null;
   private splitterNode: ChannelSplitterNode | null = null;
   private mergerNode: ChannelMergerNode | null = null;
+  private hls: Hls | null = null;
 
   private leftAnalyser: AnalyserNode | null = null;
   private rightAnalyser: AnalyserNode | null = null;
@@ -167,6 +169,12 @@ export class AudioEngineService {
     this.currentTrack.set(track);
     await this.resumeContext();
 
+    // Reset previous HLS instance if active
+    if (this.hls) {
+      this.hls.destroy();
+      this.hls = null;
+    }
+
     if (track.source === 'demo') {
       this.audioElement.pause();
       this.synthGenerator.start();
@@ -182,24 +190,62 @@ export class AudioEngineService {
     this.synthGenerator.stop();
 
     if (track.streamUrl) {
-      this.audioElement.src = track.streamUrl;
-      try {
-        await this.audioElement.play();
-        this.isPlaying.set(true);
-        this.updatePlaybackState('playing');
-        this.updateMediaSession(track);
-      } catch (err) {
-        console.error('Failed to play audio stream:', err);
-        if (track.source === 'radio') {
-          console.warn('Falling back to synth broadcast preview for radio station:', track.title);
-          this.synthGenerator.start();
+      const isM3u8 = track.streamUrl.includes('.m3u8');
+
+      if (isM3u8 && Hls.isSupported()) {
+        try {
+          this.hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true
+          });
+          this.hls.loadSource(track.streamUrl);
+          this.hls.attachMedia(this.audioElement);
+
+          this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            this.audioElement.play().catch(err => {
+              console.warn('HLS play error:', err);
+              this.handlePlaybackFailure(track);
+            });
+          });
+
+          this.hls.on(Hls.Events.ERROR, (_evt, data) => {
+            if (data.fatal) {
+              console.warn('Fatal HLS error:', data.details);
+              this.handlePlaybackFailure(track);
+            }
+          });
+
           this.isPlaying.set(true);
           this.updatePlaybackState('playing');
-        } else {
-          this.isPlaying.set(false);
-          this.updatePlaybackState('paused');
+          this.updateMediaSession(track);
+        } catch (hlsErr) {
+          console.warn('HLS initialization error:', hlsErr);
+          this.handlePlaybackFailure(track);
+        }
+      } else {
+        this.audioElement.src = track.streamUrl;
+        try {
+          await this.audioElement.play();
+          this.isPlaying.set(true);
+          this.updatePlaybackState('playing');
+          this.updateMediaSession(track);
+        } catch (err) {
+          console.error('Failed to play audio stream:', err);
+          this.handlePlaybackFailure(track);
         }
       }
+    }
+  }
+
+  private handlePlaybackFailure(track: Track): void {
+    if (track.source === 'radio') {
+      console.warn('Falling back to synth broadcast preview for radio station:', track.title);
+      this.synthGenerator.start();
+      this.isPlaying.set(true);
+      this.updatePlaybackState('playing');
+    } else {
+      this.isPlaying.set(false);
+      this.updatePlaybackState('paused');
     }
   }
 
@@ -273,6 +319,11 @@ export class AudioEngineService {
   }
 
   public stop(): void {
+    if (this.hls) {
+      try {
+        this.hls.stopLoad();
+      } catch (e) {}
+    }
     this.pause();
     this.seek(0);
     this.updatePlaybackState('none');

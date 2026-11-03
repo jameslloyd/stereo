@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RadioTunerService } from '../../services/radio-tuner.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
+import { VfdSettingsService } from '../../services/vfd-settings.service';
 import { BbcRadioPreset, RadioBand } from '../../models/radio.models';
 
 @Component({
@@ -14,6 +15,7 @@ import { BbcRadioPreset, RadioBand } from '../../models/radio.models';
 export class RadioTunerComponent {
   public tuner = inject(RadioTunerService);
   public audioEngine = inject(AudioEngineService);
+  public vfdSettings = inject(VfdSettingsService);
 
   public onPresetClick(preset: BbcRadioPreset): void {
     this.tuner.selectPreset(preset);

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { JellyfinService } from '../../services/jellyfin.service';
+import { VfdSettingsService } from '../../services/vfd-settings.service';
 
 @Component({
   selector: 'app-player-bar',
@@ -14,6 +15,7 @@ import { JellyfinService } from '../../services/jellyfin.service';
 export class PlayerBarComponent {
   protected readonly audioEngine = inject(AudioEngineService);
   protected readonly jellyfin = inject(JellyfinService);
+  public readonly vfdSettings = inject(VfdSettingsService);
 
   @Output() openJellyfin = new EventEmitter<void>();
 
