@@ -202,6 +202,151 @@ export class JellyfinService {
     }
   }
 
+  public async getArtists(limit = 120): Promise<JellyfinItem[]> {
+    const config = this.serverConfig();
+    if (!config) return [];
+    const headers = this.getAuthHeaders(config.accessToken);
+
+    // Try AlbumArtists first for cleaner music library view
+    try {
+      const url = `${config.serverUrl}/Artists/AlbumArtists?userId=${config.userId}&SortBy=SortName&SortOrder=Ascending&Limit=${limit}`;
+      const res = await firstValueFrom(this.http.get<JellyfinItemsResponse>(url, { headers }));
+      if (res.Items && res.Items.length > 0) {
+        return res.Items;
+      }
+    } catch (e) {
+      // Fallback to Artists or Users/Items
+    }
+
+    try {
+      const fallbackUrl = `${config.serverUrl}/Users/${config.userId}/Items?IncludeItemTypes=MusicArtist&Recursive=true&SortBy=SortName&SortOrder=Ascending&Limit=${limit}`;
+      const res = await firstValueFrom(this.http.get<JellyfinItemsResponse>(fallbackUrl, { headers }));
+      return res.Items || [];
+    } catch (err) {
+      console.error('Error fetching artists:', err);
+      return [];
+    }
+  }
+
+  public async getArtistAlbums(artistId: string): Promise<JellyfinItem[]> {
+    const config = this.serverConfig();
+    if (!config) return [];
+    try {
+      const headers = this.getAuthHeaders(config.accessToken);
+      const url = `${config.serverUrl}/Users/${config.userId}/Items?IncludeItemTypes=MusicAlbum&ArtistIds=${artistId}&Recursive=true&SortBy=ProductionYear,SortName&SortOrder=Descending`;
+      const res = await firstValueFrom(this.http.get<JellyfinItemsResponse>(url, { headers }));
+      return res.Items || [];
+    } catch (err) {
+      console.error('Error fetching artist albums:', err);
+      return [];
+    }
+  }
+
+  public async getArtistTracks(artistId: string, limit = 100): Promise<JellyfinItem[]> {
+    const config = this.serverConfig();
+    if (!config) return [];
+    try {
+      const headers = this.getAuthHeaders(config.accessToken);
+      const url = `${config.serverUrl}/Users/${config.userId}/Items?IncludeItemTypes=Audio&ArtistIds=${artistId}&Recursive=true&SortBy=Album,IndexNumber,SortName&SortOrder=Ascending&Limit=${limit}`;
+      const res = await firstValueFrom(this.http.get<JellyfinItemsResponse>(url, { headers }));
+      return res.Items || [];
+    } catch (err) {
+      console.error('Error fetching artist tracks:', err);
+      return [];
+    }
+  }
+
+  public async getPlaylists(limit = 100): Promise<JellyfinItem[]> {
+    const config = this.serverConfig();
+    if (!config) return [];
+    try {
+      const headers = this.getAuthHeaders(config.accessToken);
+      const url = `${config.serverUrl}/Users/${config.userId}/Items?IncludeItemTypes=Playlist&Recursive=true&SortBy=SortName&SortOrder=Ascending&Limit=${limit}`;
+      const res = await firstValueFrom(this.http.get<JellyfinItemsResponse>(url, { headers }));
+      return res.Items || [];
+    } catch (err) {
+      console.error('Error fetching playlists:', err);
+      return [];
+    }
+  }
+
+  public async getPlaylistTracks(playlistId: string): Promise<JellyfinItem[]> {
+    const config = this.serverConfig();
+    if (!config) return [];
+    const headers = this.getAuthHeaders(config.accessToken);
+
+    // Try modern Jellyfin playlist items endpoint
+    try {
+      const url = `${config.serverUrl}/Playlists/${playlistId}/Items?userId=${config.userId}`;
+      const res = await firstValueFrom(this.http.get<JellyfinItemsResponse>(url, { headers }));
+      if (res.Items && res.Items.length > 0) {
+        return res.Items;
+      }
+    } catch (e) {
+      // Fallback to ParentId query
+    }
+
+    try {
+      const url = `${config.serverUrl}/Users/${config.userId}/Items?ParentId=${playlistId}&SortBy=SortName&SortOrder=Ascending`;
+      const res = await firstValueFrom(this.http.get<JellyfinItemsResponse>(url, { headers }));
+      return res.Items || [];
+    } catch (err) {
+      console.error('Error fetching playlist tracks:', err);
+      return [];
+    }
+  }
+
+  public async getSongs(limit = 150): Promise<JellyfinItem[]> {
+    const config = this.serverConfig();
+    if (!config) return [];
+    try {
+      const headers = this.getAuthHeaders(config.accessToken);
+      const url = `${config.serverUrl}/Users/${config.userId}/Items?IncludeItemTypes=Audio&Recursive=true&SortBy=SortName&SortOrder=Ascending&Limit=${limit}`;
+      const res = await firstValueFrom(this.http.get<JellyfinItemsResponse>(url, { headers }));
+      return res.Items || [];
+    } catch (err) {
+      console.error('Error fetching songs:', err);
+      return [];
+    }
+  }
+
+  public async getGenres(limit = 60): Promise<JellyfinItem[]> {
+    const config = this.serverConfig();
+    if (!config) return [];
+    const headers = this.getAuthHeaders(config.accessToken);
+
+    try {
+      const url = `${config.serverUrl}/MusicGenres?userId=${config.userId}&SortBy=SortName&SortOrder=Ascending&Limit=${limit}`;
+      const res = await firstValueFrom(this.http.get<JellyfinItemsResponse>(url, { headers }));
+      if (res.Items && res.Items.length > 0) {
+        return res.Items;
+      }
+    } catch (e) {}
+
+    try {
+      const url = `${config.serverUrl}/Users/${config.userId}/Items?IncludeItemTypes=MusicGenre&Recursive=true&SortBy=SortName&SortOrder=Ascending&Limit=${limit}`;
+      const res = await firstValueFrom(this.http.get<JellyfinItemsResponse>(url, { headers }));
+      return res.Items || [];
+    } catch (err) {
+      console.error('Error fetching genres:', err);
+      return [];
+    }
+  }
+
+  public async getGenreAlbums(genreId: string): Promise<JellyfinItem[]> {
+    const config = this.serverConfig();
+    if (!config) return [];
+    try {
+      const headers = this.getAuthHeaders(config.accessToken);
+      const url = `${config.serverUrl}/Users/${config.userId}/Items?IncludeItemTypes=MusicAlbum&GenreIds=${genreId}&Recursive=true&SortBy=SortName&SortOrder=Ascending`;
+      const res = await firstValueFrom(this.http.get<JellyfinItemsResponse>(url, { headers }));
+      return res.Items || [];
+    } catch (err) {
+      console.error('Error fetching genre albums:', err);
+      return [];
+    }
+  }
+
   public async searchTracks(query: string): Promise<JellyfinItem[]> {
     const config = this.serverConfig();
     if (!config || !query.trim()) return [];
@@ -234,6 +379,8 @@ export class JellyfinService {
     const container = item.MediaSources?.[0]?.Container?.toUpperCase() || 'AUDIO';
     const bitrate = item.MediaSources?.[0]?.Bitrate;
 
+    const coverId = item.Type === 'MusicAlbum' ? item.Id : (item.AlbumId || (item as any).ParentId || item.Id);
+
     return {
       id: item.Id,
       title: item.Name,
@@ -241,7 +388,7 @@ export class JellyfinService {
       album: item.Album || (item.Type === 'MusicAlbum' ? item.Name : 'Jellyfin Track'),
       duration: durationSec,
       streamUrl: this.getStreamUrl(item.Id),
-      coverUrl: this.getImageUrl(item.Type === 'MusicAlbum' ? item.Id : (item as any).AlbumId || item.Id),
+      coverUrl: this.getImageUrl(coverId),
       source: 'jellyfin',
       format: `${container}${bitrate ? ` ${(bitrate / 1000).toFixed(0)}kbps` : ''}`,
       bitrate

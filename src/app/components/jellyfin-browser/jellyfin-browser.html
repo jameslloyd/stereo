@@ -3,17 +3,19 @@
     <!-- Modal Header -->
     <header class="dialog-header">
       <div class="header-brand">
-        <svg viewBox="0 0 24 24" class="jellyfin-icon">
+        <svg viewBox="0 0 24 24" class="jellyfin-icon" aria-hidden="true">
           <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
         </svg>
         <span class="dialog-title">JELLYFIN MEDIA SERVER</span>
       </div>
 
-      <div class="dialog-tabs">
+      <div class="dialog-tabs" role="tablist" aria-label="Jellyfin Modes">
         <button
           type="button"
           class="tab-btn"
+          role="tab"
           [class.active]="activeTab() === 'browse'"
+          [attr.aria-selected]="activeTab() === 'browse'"
           [disabled]="jellyfin.connectionStatus() !== 'connected'"
           (click)="activeTab.set('browse')"
         >
@@ -22,14 +24,16 @@
         <button
           type="button"
           class="tab-btn"
+          role="tab"
           [class.active]="activeTab() === 'settings'"
+          [attr.aria-selected]="activeTab() === 'settings'"
           (click)="activeTab.set('settings')"
         >
           SERVER CONNECTION
         </button>
       </div>
 
-      <button type="button" class="close-btn" (click)="close.emit()" title="Close">
+      <button type="button" class="close-btn" (click)="close.emit()" title="Close dialog">
         &times;
       </button>
     </header>
@@ -127,28 +131,100 @@
       <!-- TAB 2: MUSIC LIBRARY BROWSER -->
       @if (activeTab() === 'browse') {
         <div class="library-view">
-          <!-- Search & Filter bar -->
+          <!-- Top Toolbar: Search + Refresh -->
           <div class="library-toolbar">
             <div class="search-box">
-              <svg viewBox="0 0 24 24" class="search-icon"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+              <svg viewBox="0 0 24 24" class="search-icon" aria-hidden="true">
+                <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              </svg>
               <input
                 type="text"
                 class="search-input"
-                placeholder="Search tracks, albums, artists..."
+                placeholder="Search tracks, albums, artists, playlists..."
                 [value]="searchQuery()"
                 (input)="onSearch($any($event.target).value)"
               />
               @if (searchQuery()) {
-                <button type="button" class="clear-search-btn" (click)="onSearch('')">&times;</button>
+                <button type="button" class="clear-search-btn" (click)="onSearch('')" title="Clear search">&times;</button>
               }
             </div>
 
-            <button type="button" class="refresh-btn" (click)="loadAlbums()" title="Refresh Library">
-              REFRESH
+            <button type="button" class="refresh-btn" (click)="refreshCurrentSection()" title="Refresh Section">
+              ↻ REFRESH
             </button>
           </div>
 
-          <!-- SEARCH RESULTS -->
+          <!-- Section Nav Pills: Albums | Artists | Playlists | Songs | Genres -->
+          <nav class="library-categories-nav" aria-label="Library Categories">
+            <button
+              type="button"
+              class="cat-pill-btn"
+              [class.active]="librarySection() === 'albums'"
+              (click)="switchSection('albums')"
+            >
+              <span class="cat-icon">💿</span>
+              <span>ALBUMS</span>
+              @if (albums().length > 0) {
+                <span class="cat-badge">{{ albums().length }}</span>
+              }
+            </button>
+
+            <button
+              type="button"
+              class="cat-pill-btn"
+              [class.active]="librarySection() === 'artists'"
+              (click)="switchSection('artists')"
+            >
+              <span class="cat-icon">🎤</span>
+              <span>ARTISTS</span>
+              @if (artists().length > 0) {
+                <span class="cat-badge">{{ artists().length }}</span>
+              }
+            </button>
+
+            <button
+              type="button"
+              class="cat-pill-btn"
+              [class.active]="librarySection() === 'playlists'"
+              (click)="switchSection('playlists')"
+            >
+              <span class="cat-icon">📑</span>
+              <span>PLAYLISTS</span>
+              @if (playlists().length > 0) {
+                <span class="cat-badge">{{ playlists().length }}</span>
+              }
+            </button>
+
+            <button
+              type="button"
+              class="cat-pill-btn"
+              [class.active]="librarySection() === 'songs'"
+              (click)="switchSection('songs')"
+            >
+              <span class="cat-icon">🎵</span>
+              <span>SONGS</span>
+              @if (songs().length > 0) {
+                <span class="cat-badge">{{ songs().length }}</span>
+              }
+            </button>
+
+            <button
+              type="button"
+              class="cat-pill-btn"
+              [class.active]="librarySection() === 'genres'"
+              (click)="switchSection('genres')"
+            >
+              <span class="cat-icon">🏷️</span>
+              <span>GENRES</span>
+              @if (genres().length > 0) {
+                <span class="cat-badge">{{ genres().length }}</span>
+              }
+            </button>
+          </nav>
+
+          <!-- CONTENT PANELS -->
+
+          <!-- 1. SEARCH RESULTS (Overlays current section if active) -->
           @if (searchQuery().trim()) {
             <div class="search-results-section">
               <h3 class="section-heading">SEARCH RESULTS ({{ searchResults().length }})</h3>
@@ -166,27 +242,38 @@
                         <span class="sub">{{ item.Artists?.join(', ') || item.AlbumArtist || item.Album || item.Type }}</span>
                       </div>
                       <span class="track-duration">{{ formatDuration(item.RunTimeTicks) }}</span>
+                      <button
+                        type="button"
+                        class="row-queue-btn"
+                        (click)="$event.stopPropagation(); queueTrack(item)"
+                        title="Add to queue"
+                      >
+                        +Q
+                      </button>
                     </div>
                   }
                 </div>
               }
             </div>
-          } @else if (selectedAlbum()) {
-            <!-- ALBUM TRACKLIST VIEW -->
-            <div class="album-detail-view">
+          }
+
+          <!-- 2. ALBUM DETAIL DRILLDOWN -->
+          @else if (selectedAlbum()) {
+            <div class="drilldown-view">
               <button type="button" class="back-btn" (click)="backToAlbums()">
                 ← BACK TO ALBUMS
               </button>
 
-              <div class="album-hero">
+              <div class="item-hero">
                 <img
                   [src]="getCoverUrl(selectedAlbum()!)"
                   [alt]="selectedAlbum()!.Name"
-                  class="album-hero-cover"
+                  class="hero-cover"
                 />
-                <div class="album-hero-details">
-                  <h2 class="album-title">{{ selectedAlbum()!.Name }}</h2>
-                  <div class="album-meta">
+                <div class="hero-details">
+                  <span class="hero-kicker">ALBUM</span>
+                  <h2 class="hero-title">{{ selectedAlbum()!.Name }}</h2>
+                  <div class="hero-meta">
                     <span class="artist">{{ selectedAlbum()!.AlbumArtist || selectedAlbum()!.Artists?.join(', ') || 'Unknown Artist' }}</span>
                     @if (selectedAlbum()!.ProductionYear) {
                       <span class="dot">•</span>
@@ -196,7 +283,7 @@
                     <span class="count">{{ albumTracks().length }} tracks</span>
                   </div>
 
-                  <div class="album-actions">
+                  <div class="hero-actions">
                     <button type="button" class="hifi-btn primary-btn" (click)="playAllAlbumTracks()">
                       ▶ PLAY ALL
                     </button>
@@ -217,22 +304,185 @@
                       <span class="sub">{{ track.Artists?.join(', ') || track.AlbumArtist || '' }}</span>
                     </div>
                     <span class="track-duration">{{ formatDuration(track.RunTimeTicks) }}</span>
+                    <button
+                      type="button"
+                      class="row-queue-btn"
+                      (click)="$event.stopPropagation(); queueTrack(track)"
+                      title="Add to queue"
+                    >
+                      +Q
+                    </button>
                   </div>
                 }
               </div>
             </div>
-          } @else {
-            <!-- ALBUMS GRID -->
-            <div class="albums-grid-section">
-              @if (isLoadingLibrary()) {
-                <div class="loading-state">Loading Jellyfin albums...</div>
-              } @else if (albums().length === 0) {
-                <div class="empty-state">
-                  No music albums found in this library. Check your library configuration or scan music files in Jellyfin.
+          }
+
+          <!-- 3. ARTIST DETAIL DRILLDOWN -->
+          @else if (selectedArtist()) {
+            <div class="drilldown-view">
+              <button type="button" class="back-btn" (click)="backToArtists()">
+                ← BACK TO ARTISTS
+              </button>
+
+              <div class="item-hero artist-hero">
+                <img
+                  [src]="getCoverUrl(selectedArtist()!)"
+                  [alt]="selectedArtist()!.Name"
+                  class="hero-avatar"
+                />
+                <div class="hero-details">
+                  <span class="hero-kicker">ARTIST</span>
+                  <h2 class="hero-title">{{ selectedArtist()!.Name }}</h2>
+                  <div class="hero-meta">
+                    <span>{{ artistAlbums().length }} albums</span>
+                    <span class="dot">•</span>
+                    <span>{{ artistTracks().length }} tracks</span>
+                  </div>
+
+                  <div class="hero-actions">
+                    <button type="button" class="hifi-btn primary-btn" (click)="playAllArtistTracks()" [disabled]="artistTracks().length === 0">
+                      ▶ PLAY ALL SONGS
+                    </button>
+                    <button type="button" class="hifi-btn" (click)="addArtistToQueue()" [disabled]="artistTracks().length === 0">
+                      + QUEUE ALL
+                    </button>
+                  </div>
                 </div>
+              </div>
+
+              <!-- Artist Albums -->
+              @if (artistAlbums().length > 0) {
+                <div class="sub-section">
+                  <h3 class="section-heading">DISCOGRAPHY / ALBUMS ({{ artistAlbums().length }})</h3>
+                  <div class="albums-grid">
+                    @for (album of artistAlbums(); track album.Id) {
+                      <div class="album-card" (click)="selectAlbum(album)">
+                        <div class="album-cover-wrap">
+                          <img [src]="getCoverUrl(album)" [alt]="album.Name" class="album-cover" loading="lazy" />
+                        </div>
+                        <div class="album-card-info">
+                          <div class="album-card-title" [title]="album.Name">{{ album.Name }}</div>
+                          <div class="album-card-artist">{{ album.ProductionYear || 'Album' }}</div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Artist Tracks -->
+              @if (artistTracks().length > 0) {
+                <div class="sub-section">
+                  <h3 class="section-heading">ALL TRACKS</h3>
+                  <div class="tracklist">
+                    @for (track of artistTracks(); track track.Id; let i = $index) {
+                      <div class="track-row" (click)="playJellyfinItem(track)">
+                        <span class="track-num">{{ i + 1 }}</span>
+                        <div class="track-info">
+                          <span class="name">{{ track.Name }}</span>
+                          <span class="sub">{{ track.Album || selectedArtist()!.Name }}</span>
+                        </div>
+                        <span class="track-duration">{{ formatDuration(track.RunTimeTicks) }}</span>
+                        <button
+                          type="button"
+                          class="row-queue-btn"
+                          (click)="$event.stopPropagation(); queueTrack(track)"
+                          title="Add to queue"
+                        >
+                          +Q
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- 4. PLAYLIST DETAIL DRILLDOWN -->
+          @else if (selectedPlaylist()) {
+            <div class="drilldown-view">
+              <button type="button" class="back-btn" (click)="backToPlaylists()">
+                ← BACK TO PLAYLISTS
+              </button>
+
+              <div class="item-hero">
+                <div class="playlist-hero-icon">📑</div>
+                <div class="hero-details">
+                  <span class="hero-kicker">PLAYLIST</span>
+                  <h2 class="hero-title">{{ selectedPlaylist()!.Name }}</h2>
+                  <div class="hero-meta">
+                    <span>{{ playlistTracks().length }} tracks</span>
+                  </div>
+
+                  <div class="hero-actions">
+                    <button type="button" class="hifi-btn primary-btn" (click)="playAllPlaylistTracks()" [disabled]="playlistTracks().length === 0">
+                      ▶ PLAY PLAYLIST
+                    </button>
+                    <button type="button" class="hifi-btn" (click)="addPlaylistToQueue()" [disabled]="playlistTracks().length === 0">
+                      + QUEUE PLAYLIST
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Playlist Tracks -->
+              @if (isLoadingLibrary()) {
+                <div class="loading-state">Loading playlist tracks...</div>
+              } @else if (playlistTracks().length === 0) {
+                <div class="empty-state">No tracks found in this playlist.</div>
+              } @else {
+                <div class="tracklist">
+                  @for (track of playlistTracks(); track track.Id; let i = $index) {
+                    <div class="track-row" (click)="playJellyfinItem(track)">
+                      <span class="track-num">{{ i + 1 }}</span>
+                      <div class="track-info">
+                        <span class="name">{{ track.Name }}</span>
+                        <span class="sub">{{ track.Artists?.join(', ') || track.AlbumArtist || track.Album || '' }}</span>
+                      </div>
+                      <span class="track-duration">{{ formatDuration(track.RunTimeTicks) }}</span>
+                      <button
+                        type="button"
+                        class="row-queue-btn"
+                        (click)="$event.stopPropagation(); queueTrack(track)"
+                        title="Add to queue"
+                      >
+                        +Q
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          <!-- 5. GENRE DETAIL DRILLDOWN -->
+          @else if (selectedGenre()) {
+            <div class="drilldown-view">
+              <button type="button" class="back-btn" (click)="backToGenres()">
+                ← BACK TO GENRES
+              </button>
+
+              <div class="item-hero">
+                <div class="playlist-hero-icon">🏷️</div>
+                <div class="hero-details">
+                  <span class="hero-kicker">MUSIC GENRE</span>
+                  <h2 class="hero-title">{{ selectedGenre()!.Name }}</h2>
+                  <div class="hero-meta">
+                    <span>{{ genreAlbums().length }} albums</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Genre Albums Grid -->
+              @if (isLoadingLibrary()) {
+                <div class="loading-state">Loading albums for {{ selectedGenre()!.Name }}...</div>
+              } @else if (genreAlbums().length === 0) {
+                <div class="empty-state">No albums found for this genre.</div>
               } @else {
                 <div class="albums-grid">
-                  @for (album of albums(); track album.Id) {
+                  @for (album of genreAlbums(); track album.Id) {
                     <div class="album-card" (click)="selectAlbum(album)">
                       <div class="album-cover-wrap">
                         <img [src]="getCoverUrl(album)" [alt]="album.Name" class="album-cover" loading="lazy" />
@@ -246,6 +496,129 @@
                 </div>
               }
             </div>
+          }
+
+          <!-- 6. CATEGORY LANDING VIEWS -->
+          @else {
+            @if (isLoadingLibrary()) {
+              <div class="loading-state">Loading Jellyfin {{ librarySection() }}...</div>
+            } @else {
+
+              <!-- SECTION: ALBUMS -->
+              @if (librarySection() === 'albums') {
+                @if (albums().length === 0) {
+                  <div class="empty-state">No music albums found in this Jellyfin library.</div>
+                } @else {
+                  <div class="albums-grid">
+                    @for (album of albums(); track album.Id) {
+                      <div class="album-card" (click)="selectAlbum(album)">
+                        <div class="album-cover-wrap">
+                          <img [src]="getCoverUrl(album)" [alt]="album.Name" class="album-cover" loading="lazy" />
+                        </div>
+                        <div class="album-card-info">
+                          <div class="album-card-title" [title]="album.Name">{{ album.Name }}</div>
+                          <div class="album-card-artist">{{ album.AlbumArtist || album.Artists?.join(', ') || 'Unknown' }}</div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+
+              <!-- SECTION: ARTISTS -->
+              @if (librarySection() === 'artists') {
+                @if (artists().length === 0) {
+                  <div class="empty-state">No music artists found in this Jellyfin library.</div>
+                } @else {
+                  <div class="artists-grid">
+                    @for (artist of artists(); track artist.Id) {
+                      <div class="artist-card" (click)="selectArtist(artist)">
+                        <div class="artist-avatar-wrap">
+                          <img [src]="getCoverUrl(artist)" [alt]="artist.Name" class="artist-avatar" loading="lazy" />
+                        </div>
+                        <div class="artist-card-info">
+                          <div class="artist-card-name" [title]="artist.Name">{{ artist.Name }}</div>
+                          <div class="artist-card-sub">ARTIST</div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+
+              <!-- SECTION: PLAYLISTS -->
+              @if (librarySection() === 'playlists') {
+                @if (playlists().length === 0) {
+                  <div class="empty-state">No playlists found on your Jellyfin server. Create playlists in Jellyfin to access them here.</div>
+                } @else {
+                  <div class="playlists-grid">
+                    @for (playlist of playlists(); track playlist.Id) {
+                      <div class="playlist-card" (click)="selectPlaylist(playlist)">
+                        <div class="playlist-cover-wrap">
+                          <div class="playlist-icon-badge">📑</div>
+                        </div>
+                        <div class="playlist-card-info">
+                          <div class="playlist-card-name" [title]="playlist.Name">{{ playlist.Name }}</div>
+                          <div class="playlist-card-sub">PLAYLIST</div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+
+              <!-- SECTION: SONGS -->
+              @if (librarySection() === 'songs') {
+                @if (songs().length === 0) {
+                  <div class="empty-state">No songs found in this Jellyfin library.</div>
+                } @else {
+                  <div class="songs-section">
+                    <div class="songs-toolbar">
+                      <button type="button" class="hifi-btn primary-btn" (click)="playAllSongs()">
+                        ▶ PLAY ALL ({{ songs().length }})
+                      </button>
+                    </div>
+                    <div class="tracklist">
+                      @for (song of songs(); track song.Id; let i = $index) {
+                        <div class="track-row" (click)="playJellyfinItem(song)">
+                          <span class="track-num">{{ i + 1 }}</span>
+                          <div class="track-info">
+                            <span class="name">{{ song.Name }}</span>
+                            <span class="sub">{{ song.Artists?.join(', ') || song.AlbumArtist || song.Album || '' }}</span>
+                          </div>
+                          <span class="track-duration">{{ formatDuration(song.RunTimeTicks) }}</span>
+                          <button
+                            type="button"
+                            class="row-queue-btn"
+                            (click)="$event.stopPropagation(); queueTrack(song)"
+                            title="Add to queue"
+                          >
+                            +Q
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+
+              <!-- SECTION: GENRES -->
+              @if (librarySection() === 'genres') {
+                @if (genres().length === 0) {
+                  <div class="empty-state">No music genres found in this Jellyfin library.</div>
+                } @else {
+                  <div class="genres-grid">
+                    @for (genre of genres(); track genre.Id) {
+                      <div class="genre-card" (click)="selectGenre(genre)">
+                        <div class="genre-icon">🏷️</div>
+                        <div class="genre-name">{{ genre.Name }}</div>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+
+            }
           }
         </div>
       }

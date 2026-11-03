@@ -80,4 +80,62 @@ describe('JellyfinService', () => {
     expect(service.serverConfig()?.userId).toBe('user-001');
     expect(service.serverConfig()?.accessToken).toBe('mock-token-xyz');
   });
+
+  it('should fetch artists when connected', async () => {
+    service.serverConfig.set({
+      serverUrl: 'http://192.168.1.100:8096',
+      username: 'audiophile',
+      userId: 'user-001',
+      accessToken: 'token-123'
+    });
+
+    const artistsPromise = service.getArtists();
+    const req = httpMock.expectOne('http://192.168.1.100:8096/Artists/AlbumArtists?userId=user-001&SortBy=SortName&SortOrder=Ascending&Limit=120');
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      Items: [
+        { Id: 'art-1', Name: 'Daft Punk', Type: 'MusicArtist' },
+        { Id: 'art-2', Name: 'Kavinsky', Type: 'MusicArtist' }
+      ],
+      TotalRecordCount: 2,
+      StartIndex: 0
+    });
+
+    const artists = await artistsPromise;
+    expect(artists.length).toBe(2);
+    expect(artists[0].Name).toBe('Daft Punk');
+  });
+
+  it('should fetch playlists and playlist tracks', async () => {
+    service.serverConfig.set({
+      serverUrl: 'http://192.168.1.100:8096',
+      username: 'audiophile',
+      userId: 'user-001',
+      accessToken: 'token-123'
+    });
+
+    const playlistsPromise = service.getPlaylists();
+    const req1 = httpMock.expectOne('http://192.168.1.100:8096/Users/user-001/Items?IncludeItemTypes=Playlist&Recursive=true&SortBy=SortName&SortOrder=Ascending&Limit=100');
+    req1.flush({
+      Items: [{ Id: 'pl-1', Name: 'Synthwave Classics', Type: 'Playlist' }],
+      TotalRecordCount: 1,
+      StartIndex: 0
+    });
+
+    const playlists = await playlistsPromise;
+    expect(playlists.length).toBe(1);
+    expect(playlists[0].Name).toBe('Synthwave Classics');
+
+    const tracksPromise = service.getPlaylistTracks('pl-1');
+    const req2 = httpMock.expectOne('http://192.168.1.100:8096/Playlists/pl-1/Items?userId=user-001');
+    req2.flush({
+      Items: [{ Id: 'track-1', Name: 'Pacific Coast', Type: 'Audio' }],
+      TotalRecordCount: 1,
+      StartIndex: 0
+    });
+
+    const tracks = await tracksPromise;
+    expect(tracks.length).toBe(1);
+    expect(tracks[0].Name).toBe('Pacific Coast');
+  });
 });

@@ -19,15 +19,24 @@ export interface JellyfinAuthResponse {
 export interface JellyfinItem {
   Id: string;
   Name: string;
-  Type: 'Folder' | 'MusicAlbum' | 'Audio' | 'MusicArtist';
+  Type: 'Folder' | 'MusicAlbum' | 'Audio' | 'MusicArtist' | 'Playlist' | 'MusicGenre';
   RunTimeTicks?: number;
+  CumulativeRunTimeTicks?: number;
+  ChildCount?: number;
+  Overview?: string;
   Artists?: string[];
   AlbumArtist?: string;
   Album?: string;
+  AlbumId?: string;
   ProductionYear?: number;
+  Genres?: string[];
+  GenreItems?: Array<{ Name: string; Id: string }>;
+  ArtistItems?: Array<{ Name: string; Id: string }>;
   ImageTags?: {
     Primary?: string;
     Thumb?: string;
+    Banner?: string;
+    Logo?: string;
   };
   IndexNumber?: number; // Track number
   ParentIndexNumber?: number; // Disc number
