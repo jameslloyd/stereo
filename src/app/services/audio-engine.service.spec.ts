@@ -7,10 +7,24 @@ describe('AudioEngineService', () => {
   let service: AudioEngineService;
 
   beforeEach(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {}
+
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [AudioEngineService, SynthGeneratorService]
     });
     service = TestBed.inject(AudioEngineService);
+  });
+
+  afterEach(() => {
+    try {
+      service?.stop();
+    } catch (e) {}
+    TestBed.resetTestingModule();
   });
 
   it('should be created', () => {

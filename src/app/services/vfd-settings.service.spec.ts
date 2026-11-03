@@ -5,10 +5,26 @@ describe('VfdSettingsService', () => {
   let service: VfdSettingsService;
 
   beforeEach(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {}
+
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [VfdSettingsService]
     });
     service = TestBed.inject(VfdSettingsService);
+  });
+
+  afterEach(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {}
+    TestBed.resetTestingModule();
   });
 
   it('should be created with default VFD settings', () => {

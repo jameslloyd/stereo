@@ -9,6 +9,16 @@ describe('JellyfinService', () => {
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.clear();
+      }
+    } catch (e) {}
+
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
         JellyfinService,
@@ -21,7 +31,19 @@ describe('JellyfinService', () => {
   });
 
   afterEach(() => {
-    httpMock.verify();
+    try {
+      httpMock.verify();
+    } finally {
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.clear();
+        }
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          window.sessionStorage.clear();
+        }
+      } catch (e) {}
+      TestBed.resetTestingModule();
+    }
   });
 
   it('should be created', () => {
@@ -79,6 +101,9 @@ describe('JellyfinService', () => {
     expect(service.connectionStatus()).toBe('connected');
     expect(service.serverConfig()?.userId).toBe('user-001');
     expect(service.serverConfig()?.accessToken).toBe('mock-token-xyz');
+
+    // Clean up stored credentials so subsequent tests start in a clean disconnected state
+    service.logout();
   });
 
   it('should fetch artists when connected', async () => {

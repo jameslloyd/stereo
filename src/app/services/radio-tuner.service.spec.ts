@@ -9,11 +9,28 @@ describe('RadioTunerService', () => {
   let audioEngine: AudioEngineService;
 
   beforeEach(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {}
+
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [RadioTunerService, AudioEngineService, SynthGeneratorService]
     });
     service = TestBed.inject(RadioTunerService);
     audioEngine = TestBed.inject(AudioEngineService);
+  });
+
+  afterEach(() => {
+    try {
+      audioEngine?.stop();
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {}
+    TestBed.resetTestingModule();
   });
 
   it('should be created', () => {

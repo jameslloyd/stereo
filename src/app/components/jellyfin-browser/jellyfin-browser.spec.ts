@@ -14,6 +14,13 @@ describe('JellyfinBrowserComponent', () => {
   let audioEngine: AudioEngineService;
 
   beforeEach(async () => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {}
+
+    TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [JellyfinBrowserComponent],
       providers: [
@@ -29,6 +36,16 @@ describe('JellyfinBrowserComponent', () => {
     component = fixture.componentInstance;
     jellyfinService = TestBed.inject(JellyfinService);
     audioEngine = TestBed.inject(AudioEngineService);
+  });
+
+  afterEach(() => {
+    try {
+      audioEngine?.stop();
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {}
+    TestBed.resetTestingModule();
   });
 
   it('should create the Jellyfin browser component', () => {

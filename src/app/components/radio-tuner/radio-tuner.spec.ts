@@ -10,6 +10,13 @@ describe('RadioTunerComponent', () => {
   let tunerService: RadioTunerService;
 
   beforeEach(async () => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {}
+
+    TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [RadioTunerComponent],
       providers: [RadioTunerService, AudioEngineService, SynthGeneratorService]
@@ -19,6 +26,17 @@ describe('RadioTunerComponent', () => {
     component = fixture.componentInstance;
     tunerService = TestBed.inject(RadioTunerService);
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    try {
+      const audioEngine = TestBed.inject(AudioEngineService);
+      audioEngine?.stop();
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {}
+    TestBed.resetTestingModule();
   });
 
   it('should create the radio tuner component', () => {

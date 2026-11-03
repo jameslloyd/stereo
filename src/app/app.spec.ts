@@ -7,6 +7,13 @@ import { JellyfinService } from './services/jellyfin.service';
 
 describe('App', () => {
   beforeEach(async () => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {}
+
+    TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
@@ -16,6 +23,17 @@ describe('App', () => {
         JellyfinService
       ]
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    try {
+      const audioEngine = TestBed.inject(AudioEngineService);
+      audioEngine?.stop();
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch (e) {}
+    TestBed.resetTestingModule();
   });
 
   it('should create the app', () => {
