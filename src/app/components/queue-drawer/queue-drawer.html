@@ -1,0 +1,41 @@
+<div class="drawer-backdrop" (click)="close.emit()">
+  <div class="drawer-panel" (click)="$event.stopPropagation()">
+    <header class="drawer-header">
+      <div class="drawer-title">
+        <span class="icon">≡</span>
+        <span>PLAYBACK QUEUE ({{ audioEngine.queue().length }})</span>
+      </div>
+      <div class="header-actions">
+        @if (audioEngine.queue().length > 0) {
+          <button type="button" class="clear-btn" (click)="clearQueue()">CLEAR</button>
+        }
+        <button type="button" class="close-btn" (click)="close.emit()">&times;</button>
+      </div>
+    </header>
+
+    <div class="queue-list">
+      @if (audioEngine.queue().length === 0) {
+        <div class="empty-queue">
+          <p>The queue is empty.</p>
+          <p class="sub">Play a demo track, upload local audio files, or browse your Jellyfin library.</p>
+        </div>
+      } @else {
+        @for (item of audioEngine.queue(); track item.id; let i = $index) {
+          <div
+            class="queue-item"
+            [class.active]="audioEngine.currentTrack()?.id === item.id"
+            (click)="playTrack(item, i)"
+          >
+            <span class="item-index">{{ i + 1 }}</span>
+            <div class="item-info">
+              <span class="item-title">{{ item.title }}</span>
+              <span class="item-artist">{{ item.artist }} • {{ item.album }}</span>
+            </div>
+            <span class="source-tag" [class]="item.source">{{ item.source | uppercase }}</span>
+            <span class="item-duration">{{ formatDuration(item.duration) }}</span>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</div>

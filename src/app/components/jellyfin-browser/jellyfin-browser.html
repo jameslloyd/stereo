@@ -1,0 +1,254 @@
+<div class="modal-backdrop" (click)="close.emit()">
+  <div class="jellyfin-dialog" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <header class="dialog-header">
+      <div class="header-brand">
+        <svg viewBox="0 0 24 24" class="jellyfin-icon">
+          <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
+        </svg>
+        <span class="dialog-title">JELLYFIN MEDIA SERVER</span>
+      </div>
+
+      <div class="dialog-tabs">
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'browse'"
+          [disabled]="jellyfin.connectionStatus() !== 'connected'"
+          (click)="activeTab.set('browse')"
+        >
+          MUSIC LIBRARY
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab() === 'settings'"
+          (click)="activeTab.set('settings')"
+        >
+          SERVER CONNECTION
+        </button>
+      </div>
+
+      <button type="button" class="close-btn" (click)="close.emit()" title="Close">
+        &times;
+      </button>
+    </header>
+
+    <!-- Dialog Content -->
+    <div class="dialog-body">
+      <!-- TAB 1: SERVER SETTINGS / LOGIN -->
+      @if (activeTab() === 'settings') {
+        <div class="settings-view">
+          <div class="connection-status-banner" [class]="jellyfin.connectionStatus()">
+            <div class="status-dot"></div>
+            <div class="status-info">
+              <span class="status-heading">Status: {{ jellyfin.connectionStatus() | uppercase }}</span>
+              @if (jellyfin.serverConfig(); as cfg) {
+                <span class="status-details">Connected as {{ cfg.username }} to {{ cfg.serverUrl }}</span>
+              }
+              @if (jellyfin.errorMessage(); as err) {
+                <span class="status-error">{{ err }}</span>
+              }
+            </div>
+          </div>
+
+          <form class="hifi-form" (ngSubmit)="onConnect()">
+            <div class="form-row">
+              <label for="serverUrl" class="form-label">SERVER URL</label>
+              <input
+                id="serverUrl"
+                type="url"
+                name="serverUrl"
+                class="hifi-input"
+                placeholder="http://192.168.1.100:8096"
+                [(ngModel)]="serverUrl"
+                required
+              />
+              <span class="form-hint">Address of your Jellyfin media server</span>
+            </div>
+
+            <div class="form-row">
+              <label for="username" class="form-label">USERNAME</label>
+              <input
+                id="username"
+                type="text"
+                name="username"
+                class="hifi-input"
+                placeholder="Jellyfin username"
+                [(ngModel)]="username"
+                required
+              />
+            </div>
+
+            <div class="form-row">
+              <label for="password" class="form-label">PASSWORD</label>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                class="hifi-input"
+                placeholder="Optional password"
+                [(ngModel)]="password"
+              />
+            </div>
+
+            <div class="form-actions">
+              <button
+                type="submit"
+                class="hifi-btn primary-btn"
+                [disabled]="isSubmitting() || !serverUrl || !username"
+              >
+                {{ isSubmitting() ? 'CONNECTING...' : 'CONNECT TO SERVER' }}
+              </button>
+
+              @if (jellyfin.connectionStatus() === 'connected') {
+                <button
+                  type="button"
+                  class="hifi-btn danger-btn"
+                  (click)="onDisconnect()"
+                >
+                  DISCONNECT
+                </button>
+              }
+            </div>
+          </form>
+
+          <div class="server-help-card">
+            <h4>Jellyfin Connection Notes</h4>
+            <ul>
+              <li>Ensure <strong>CORS</strong> or local network access is permitted on your Jellyfin server.</li>
+              <li>Authentication is saved locally in your browser session for seamless reconnection.</li>
+              <li>Audio is streamed in high-fidelity directly to the Kenwood 24-band dual analyser.</li>
+            </ul>
+          </div>
+        </div>
+      }
+
+      <!-- TAB 2: MUSIC LIBRARY BROWSER -->
+      @if (activeTab() === 'browse') {
+        <div class="library-view">
+          <!-- Search & Filter bar -->
+          <div class="library-toolbar">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" class="search-icon"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+              <input
+                type="text"
+                class="search-input"
+                placeholder="Search tracks, albums, artists..."
+                [value]="searchQuery()"
+                (input)="onSearch($any($event.target).value)"
+              />
+              @if (searchQuery()) {
+                <button type="button" class="clear-search-btn" (click)="onSearch('')">&times;</button>
+              }
+            </div>
+
+            <button type="button" class="refresh-btn" (click)="loadAlbums()" title="Refresh Library">
+              REFRESH
+            </button>
+          </div>
+
+          <!-- SEARCH RESULTS -->
+          @if (searchQuery().trim()) {
+            <div class="search-results-section">
+              <h3 class="section-heading">SEARCH RESULTS ({{ searchResults().length }})</h3>
+              @if (isSearching()) {
+                <div class="loading-state">Searching library...</div>
+              } @else if (searchResults().length === 0) {
+                <div class="empty-state">No tracks or albums found matching "{{ searchQuery() }}"</div>
+              } @else {
+                <div class="tracklist">
+                  @for (item of searchResults(); track item.Id) {
+                    <div class="track-row" (click)="playJellyfinItem(item)">
+                      <div class="track-play-icon">▶</div>
+                      <div class="track-info">
+                        <span class="name">{{ item.Name }}</span>
+                        <span class="sub">{{ item.Artists?.join(', ') || item.AlbumArtist || item.Album || item.Type }}</span>
+                      </div>
+                      <span class="track-duration">{{ formatDuration(item.RunTimeTicks) }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          } @else if (selectedAlbum()) {
+            <!-- ALBUM TRACKLIST VIEW -->
+            <div class="album-detail-view">
+              <button type="button" class="back-btn" (click)="backToAlbums()">
+                ← BACK TO ALBUMS
+              </button>
+
+              <div class="album-hero">
+                <img
+                  [src]="getCoverUrl(selectedAlbum()!)"
+                  [alt]="selectedAlbum()!.Name"
+                  class="album-hero-cover"
+                />
+                <div class="album-hero-details">
+                  <h2 class="album-title">{{ selectedAlbum()!.Name }}</h2>
+                  <div class="album-meta">
+                    <span class="artist">{{ selectedAlbum()!.AlbumArtist || selectedAlbum()!.Artists?.join(', ') || 'Unknown Artist' }}</span>
+                    @if (selectedAlbum()!.ProductionYear) {
+                      <span class="dot">•</span>
+                      <span class="year">{{ selectedAlbum()!.ProductionYear }}</span>
+                    }
+                    <span class="dot">•</span>
+                    <span class="count">{{ albumTracks().length }} tracks</span>
+                  </div>
+
+                  <div class="album-actions">
+                    <button type="button" class="hifi-btn primary-btn" (click)="playAllAlbumTracks()">
+                      ▶ PLAY ALL
+                    </button>
+                    <button type="button" class="hifi-btn" (click)="addAlbumToQueue()">
+                      + QUEUE ALL
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tracks List -->
+              <div class="tracklist">
+                @for (track of albumTracks(); track track.Id; let i = $index) {
+                  <div class="track-row" (click)="playJellyfinItem(track)">
+                    <span class="track-num">{{ track.IndexNumber || (i + 1) }}</span>
+                    <div class="track-info">
+                      <span class="name">{{ track.Name }}</span>
+                      <span class="sub">{{ track.Artists?.join(', ') || track.AlbumArtist || '' }}</span>
+                    </div>
+                    <span class="track-duration">{{ formatDuration(track.RunTimeTicks) }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          } @else {
+            <!-- ALBUMS GRID -->
+            <div class="albums-grid-section">
+              @if (isLoadingLibrary()) {
+                <div class="loading-state">Loading Jellyfin albums...</div>
+              } @else if (albums().length === 0) {
+                <div class="empty-state">
+                  No music albums found in this library. Check your library configuration or scan music files in Jellyfin.
+                </div>
+              } @else {
+                <div class="albums-grid">
+                  @for (album of albums(); track album.Id) {
+                    <div class="album-card" (click)="selectAlbum(album)">
+                      <div class="album-cover-wrap">
+                        <img [src]="getCoverUrl(album)" [alt]="album.Name" class="album-cover" loading="lazy" />
+                      </div>
+                      <div class="album-card-info">
+                        <div class="album-card-title" [title]="album.Name">{{ album.Name }}</div>
+                        <div class="album-card-artist">{{ album.AlbumArtist || album.Artists?.join(', ') || 'Unknown' }}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

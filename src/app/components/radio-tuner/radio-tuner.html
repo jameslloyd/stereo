@@ -1,0 +1,363 @@
+<section class="tuner-chassis" [class.power-off]="!tuner.isPowerOn()" aria-label="Kenwood KT-2400 Radio Tuner">
+  <!-- Top Faceplate Header -->
+  <header class="tuner-header">
+    <div class="brand-group">
+      <span class="brand-name">KENWOOD</span>
+      <span class="model-number">KT-2400</span>
+      <span class="model-desc">FM / AM / DAB STEREO SYNTHESIZER TUNER • RDS EON SYSTEM</span>
+    </div>
+
+    <div class="header-controls">
+      <!-- Band Selectors -->
+      <nav class="band-group" aria-label="Radio Bands">
+        <button
+          type="button"
+          class="tactile-pill-btn"
+          [class.active]="tuner.band() === 'FM'"
+          [attr.aria-pressed]="tuner.band() === 'FM'"
+          (click)="onSetBand('FM')"
+        >
+          <span class="indicator-dot"></span>
+          FM
+        </button>
+        <button
+          type="button"
+          class="tactile-pill-btn"
+          [class.active]="tuner.band() === 'AM'"
+          [attr.aria-pressed]="tuner.band() === 'AM'"
+          (click)="onSetBand('AM')"
+        >
+          <span class="indicator-dot"></span>
+          AM
+        </button>
+        <button
+          type="button"
+          class="tactile-pill-btn"
+          [class.active]="tuner.band() === 'DAB'"
+          [attr.aria-pressed]="tuner.band() === 'DAB'"
+          (click)="onSetBand('DAB')"
+        >
+          <span class="indicator-dot"></span>
+          DAB
+        </button>
+      </nav>
+
+      <!-- Stereo/Mono Mode -->
+      <button
+        type="button"
+        class="tactile-pill-btn"
+        [class.active]="tuner.stereoMode() === 'auto-stereo'"
+        (click)="onToggleStereo()"
+        title="Toggle Stereo / Mono Reception"
+      >
+        <span class="indicator-dot" [class.stereo-dot]="tuner.isStereo()"></span>
+        <span>{{ tuner.stereoMode() === 'auto-stereo' ? 'AUTO / STEREO' : 'MONO' }}</span>
+      </button>
+
+      <!-- Auto Scan -->
+      <button
+        type="button"
+        class="tactile-pill-btn scan-btn"
+        [class.scanning]="tuner.isScanning()"
+        (click)="onAutoScan()"
+        title="Auto Seek Next Station"
+      >
+        <span>SCAN</span>
+        <span class="scan-arrow">▶▶</span>
+      </button>
+
+      <!-- Power Switch -->
+      <div class="power-cluster">
+        <button
+          type="button"
+          class="power-btn"
+          [class.power-on]="tuner.isPowerOn()"
+          (click)="onTogglePower()"
+          title="Tuner Power Standby"
+        >
+          <span class="power-led"></span>
+          <span>POWER</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Body: Tuner Display & Controls -->
+  <div class="tuner-body">
+    <!-- VFD Display Window -->
+    <div class="vfd-bezel-frame">
+      <div class="vfd-screen">
+        @if (tuner.isPowerOn()) {
+          <!-- VFD Top Annunciator Strip -->
+          <div class="vfd-annunciator-row">
+            <div class="annunciator-flags">
+              <span class="vfd-flag" [class.lit]="tuner.isStereo()">
+                <span class="flag-led red"></span> STEREO
+              </span>
+              <span class="vfd-flag" [class.lit]="tuner.isTuned()">
+                <span class="flag-led green"></span> TUNED
+              </span>
+              <span class="vfd-flag" [class.lit]="tuner.isTuned() && tuner.band() !== 'AM'">
+                <span class="flag-led cyan"></span> RDS
+              </span>
+              <span class="vfd-flag" [class.lit]="tuner.stereoMode() === 'auto-stereo'">
+                AUTO
+              </span>
+            </div>
+
+            <div class="annunciator-band">
+              <span class="band-tag" [class.active]="tuner.band() === 'FM'">FM</span>
+              <span class="band-tag" [class.active]="tuner.band() === 'AM'">AM</span>
+              <span class="band-tag" [class.active]="tuner.band() === 'DAB'">DAB</span>
+              <span class="channel-num" *ngIf="tuner.activePreset()">
+                P-0{{ tuner.activePreset()?.presetNumber }}
+              </span>
+            </div>
+          </div>
+
+          <!-- VFD Center: Digital Frequency Counter & Signal Meter -->
+          <div class="vfd-center-row">
+            <div class="frequency-readout">
+              <span class="freq-digits">{{ tuner.frequencyDisplay() }}</span>
+              <span class="freq-mode" *ngIf="tuner.activePreset()">
+                {{ tuner.activePreset()?.shortName }}
+              </span>
+            </div>
+
+            <!-- 5-Segment Signal Strength Meter -->
+            <div class="signal-meter-container" aria-label="Signal Strength">
+              <div class="signal-label">SIGNAL</div>
+              <div class="signal-ladder">
+                <span class="ladder-bar bar-1" [class.lit]="tuner.signalStrength() >= 1"></span>
+                <span class="ladder-bar bar-2" [class.lit]="tuner.signalStrength() >= 2"></span>
+                <span class="ladder-bar bar-3" [class.lit]="tuner.signalStrength() >= 3"></span>
+                <span class="ladder-bar bar-4" [class.lit]="tuner.signalStrength() >= 4"></span>
+                <span class="ladder-bar bar-5" [class.lit]="tuner.signalStrength() >= 5"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- VFD Bottom: RDS Alphanumeric Matrix Ticker -->
+          <div class="vfd-rds-row">
+            <div class="rds-station-badge" *ngIf="tuner.activePreset()">
+              {{ tuner.activePreset()?.name }}
+            </div>
+            <div class="rds-ticker-text">
+              <span class="ticker-scroll">{{ tuner.rdsText() }}</span>
+            </div>
+            <div class="rds-genre-tag" *ngIf="tuner.activePreset()">
+              [ {{ tuner.activePreset()?.genre }} ]
+            </div>
+          </div>
+        } @else {
+          <div class="vfd-standby-view">
+            <span class="standby-text">STANDBY</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Manual Tuning Step Controls -->
+    <div class="manual-tuning-cluster">
+      <div class="tuning-title">MANUAL TUNING</div>
+      <div class="tuning-rockers">
+        <button
+          type="button"
+          class="tune-rocker down"
+          (click)="onTuneDown()"
+          title="Tune Down Frequency"
+        >
+          <span class="rocker-arrow">◀◀</span>
+          <span class="rocker-label">DOWN</span>
+        </button>
+
+        <button
+          type="button"
+          class="tune-rocker up"
+          (click)="onTuneUp()"
+          title="Tune Up Frequency"
+        >
+          <span class="rocker-label">UP</span>
+          <span class="rocker-arrow">▶▶</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom: 8 BBC Radio Preset Buttons with Station Logos -->
+  <footer class="tuner-presets-deck">
+    <div class="presets-header-strip">
+      <span class="section-title">BBC RADIO BROADCAST PRESETS (1 — 8)</span>
+      <span class="section-subtitle">DIRECT FREQUENCY SYNTHESIZER ACCESS</span>
+    </div>
+
+    <div class="presets-grid" role="radiogroup" aria-label="BBC Radio Station Presets">
+      @for (preset of tuner.presets(); track preset.id) {
+        <button
+          type="button"
+          class="preset-button"
+          [class.active]="tuner.activePreset()?.id === preset.id"
+          [attr.aria-pressed]="tuner.activePreset()?.id === preset.id"
+          (click)="onPresetClick(preset)"
+          [title]="preset.name + ' (' + preset.frequencyStr + ') - ' + preset.genre"
+        >
+          <!-- Top Row: Preset Channel Badge & Status LED Jewel -->
+          <div class="preset-meta-top">
+            <span class="preset-num">P-0{{ preset.presetNumber }}</span>
+            <span class="preset-jewel-led" [class.lit]="tuner.activePreset()?.id === preset.id"></span>
+          </div>
+
+          <!-- Center: BBC Radio Station Logo -->
+          <div class="preset-logo-container">
+            <!-- BBC Radio 1 -->
+            @if (preset.id === 'bbc-radio-1') {
+              <svg class="bbc-station-logo" viewBox="0 0 110 32" aria-hidden="true">
+                <!-- BBC Blocks -->
+                <rect x="0" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="8" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="18" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="26" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="36" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="44" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">C</text>
+                <!-- Radio 1 Pill Badge -->
+                <rect x="56" y="4" width="52" height="22" rx="11" fill="#e61b72" />
+                <circle cx="97" cy="15" r="9" fill="#ffffff" />
+                <text x="97" y="21" font-size="14" font-weight="900" font-family="system-ui, sans-serif" fill="#e61b72" text-anchor="middle">1</text>
+                <text x="74" y="19" font-size="9" font-weight="800" font-family="system-ui, sans-serif" fill="#ffffff" text-anchor="middle">RADIO</text>
+              </svg>
+            }
+
+            <!-- BBC Radio 2 -->
+            @else if (preset.id === 'bbc-radio-2') {
+              <svg class="bbc-station-logo" viewBox="0 0 110 32" aria-hidden="true">
+                <!-- BBC Blocks -->
+                <rect x="0" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="8" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="18" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="26" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="36" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="44" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">C</text>
+                <!-- Radio 2 Pill Badge -->
+                <rect x="56" y="4" width="52" height="22" rx="11" fill="#ff6600" />
+                <circle cx="97" cy="15" r="9" fill="#ffffff" />
+                <text x="97" y="21" font-size="14" font-weight="900" font-family="system-ui, sans-serif" fill="#ff6600" text-anchor="middle">2</text>
+                <text x="74" y="19" font-size="9" font-weight="800" font-family="system-ui, sans-serif" fill="#ffffff" text-anchor="middle">RADIO</text>
+              </svg>
+            }
+
+            <!-- BBC Radio 3 -->
+            @else if (preset.id === 'bbc-radio-3') {
+              <svg class="bbc-station-logo" viewBox="0 0 110 32" aria-hidden="true">
+                <!-- BBC Blocks -->
+                <rect x="0" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="8" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="18" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="26" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="36" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="44" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">C</text>
+                <!-- Radio 3 Pill Badge -->
+                <rect x="56" y="4" width="52" height="22" rx="11" fill="#b31b38" />
+                <circle cx="97" cy="15" r="9" fill="#ffffff" />
+                <text x="97" y="21" font-size="14" font-weight="900" font-family="system-ui, sans-serif" fill="#b31b38" text-anchor="middle">3</text>
+                <text x="74" y="19" font-size="9" font-weight="800" font-family="system-ui, sans-serif" fill="#ffffff" text-anchor="middle">RADIO</text>
+              </svg>
+            }
+
+            <!-- BBC Radio 4 -->
+            @else if (preset.id === 'bbc-radio-4') {
+              <svg class="bbc-station-logo" viewBox="0 0 110 32" aria-hidden="true">
+                <!-- BBC Blocks -->
+                <rect x="0" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="8" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="18" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="26" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="36" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="44" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">C</text>
+                <!-- Radio 4 Pill Badge -->
+                <rect x="56" y="4" width="52" height="22" rx="11" fill="#005596" />
+                <circle cx="97" cy="15" r="9" fill="#ffffff" />
+                <text x="97" y="21" font-size="14" font-weight="900" font-family="system-ui, sans-serif" fill="#005596" text-anchor="middle">4</text>
+                <text x="74" y="19" font-size="9" font-weight="800" font-family="system-ui, sans-serif" fill="#ffffff" text-anchor="middle">RADIO</text>
+              </svg>
+            }
+
+            <!-- BBC Radio 5 Live -->
+            @else if (preset.id === 'bbc-radio-5-live') {
+              <svg class="bbc-station-logo" viewBox="0 0 110 32" aria-hidden="true">
+                <!-- BBC Blocks -->
+                <rect x="0" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="8" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="18" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="26" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="36" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="44" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">C</text>
+                <!-- 5 Live Pill Badge -->
+                <rect x="56" y="4" width="52" height="22" rx="11" fill="#008542" />
+                <circle cx="68" cy="15" r="9" fill="#ffffff" />
+                <text x="68" y="21" font-size="14" font-weight="900" font-family="system-ui, sans-serif" fill="#008542" text-anchor="middle">5</text>
+                <text x="92" y="19" font-size="9" font-weight="800" font-family="system-ui, sans-serif" fill="#ffffff" text-anchor="middle">LIVE</text>
+              </svg>
+            }
+
+            <!-- BBC Radio 6 Music -->
+            @else if (preset.id === 'bbc-radio-6-music') {
+              <svg class="bbc-station-logo" viewBox="0 0 110 32" aria-hidden="true">
+                <!-- BBC Blocks -->
+                <rect x="0" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="8" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="18" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="26" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="36" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="44" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">C</text>
+                <!-- 6 Music Pill Badge -->
+                <rect x="56" y="4" width="52" height="22" rx="11" fill="#592c82" />
+                <circle cx="68" cy="15" r="9" fill="#ffffff" />
+                <text x="68" y="21" font-size="14" font-weight="900" font-family="system-ui, sans-serif" fill="#592c82" text-anchor="middle">6</text>
+                <text x="92" y="19" font-size="8.5" font-weight="800" font-family="system-ui, sans-serif" fill="#ffffff" text-anchor="middle">MUSIC</text>
+              </svg>
+            }
+
+            <!-- BBC Radio 1Xtra -->
+            @else if (preset.id === 'bbc-radio-1xtra') {
+              <svg class="bbc-station-logo" viewBox="0 0 110 32" aria-hidden="true">
+                <!-- BBC Blocks -->
+                <rect x="0" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="8" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="18" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="26" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="36" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="44" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">C</text>
+                <!-- 1Xtra Badge -->
+                <rect x="56" y="4" width="52" height="22" rx="4" fill="#111111" stroke="#f59e0b" stroke-width="1.2" />
+                <text x="82" y="19" font-size="11" font-weight="900" font-family="system-ui, sans-serif" fill="#f59e0b" text-anchor="middle">1Xtra</text>
+              </svg>
+            }
+
+            <!-- BBC World Service -->
+            @else if (preset.id === 'bbc-world-service') {
+              <svg class="bbc-station-logo" viewBox="0 0 110 32" aria-hidden="true">
+                <!-- BBC Blocks -->
+                <rect x="0" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="8" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="18" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="26" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">B</text>
+                <rect x="36" y="7" width="16" height="16" rx="2" fill="#ffffff" />
+                <text x="44" y="19" font-size="12" font-weight="900" font-family="system-ui, sans-serif" fill="#000000" text-anchor="middle">C</text>
+                <!-- World Service Badge -->
+                <rect x="56" y="4" width="52" height="22" rx="4" fill="#cc0000" />
+                <text x="82" y="14" font-size="6.5" font-weight="900" font-family="system-ui, sans-serif" fill="#ffffff" text-anchor="middle">WORLD</text>
+                <text x="82" y="22" font-size="6.5" font-weight="900" font-family="system-ui, sans-serif" fill="#ffffff" text-anchor="middle">SERVICE</text>
+              </svg>
+            }
+          </div>
+
+          <!-- Bottom: Station Frequency & Band Tag -->
+          <div class="preset-footer-info">
+            <span class="preset-freq-tag">{{ preset.frequencyStr }}</span>
+            <span class="preset-band-pill">{{ preset.band }}</span>
+          </div>
+        </button>
+      }
+    </div>
+  </footer>
+</section>

@@ -1,0 +1,390 @@
+<div class="cd-chassis">
+  <!-- Top Faceplate Bar -->
+  <header class="cd-header">
+    <div class="brand-group">
+      <span class="brand-name">KENWOOD</span>
+      <span class="model-number">DP-2400</span>
+      <span class="model-desc">COMPACT DISC PLAYER • 1-BIT DUAL D/A CONVERTER</span>
+    </div>
+
+    <div class="audio-standard-group">
+      <div class="compact-disc-logo" title="Compact Disc Digital Audio Standard">
+        <svg viewBox="0 0 100 40" class="cd-logo-svg">
+          <text x="5" y="16" font-family="'Orbitron', system-ui, sans-serif" font-weight="900" font-size="14" fill="#94a3b8" letter-spacing="1">COMPACT</text>
+          <text x="5" y="34" font-family="'Orbitron', system-ui, sans-serif" font-weight="900" font-size="18" fill="#e2e8f0" letter-spacing="2">disc</text>
+          <text x="64" y="22" font-family="sans-serif" font-weight="700" font-size="6.5" fill="#64748b">DIGITAL AUDIO</text>
+        </svg>
+      </div>
+
+      <div class="power-cluster">
+        <button
+          type="button"
+          class="power-btn"
+          [class.on]="audioEngine.isPlaying() || audioEngine.currentTrack()"
+          (click)="audioEngine.togglePlay()"
+          title="Power / Standby"
+        >
+          <span class="power-led"></span>
+          <span class="power-text">POWER</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Front Deck Body -->
+  <div class="cd-deck-body">
+    <!-- Left Section: Motorized CD Tray & Disc Viewport -->
+    <section class="cd-tray-section">
+      <div class="cd-tray-door" [class.open]="audioEngine.trayOpen()">
+        <div class="tray-faceplate">
+          <span class="tray-label">MOTORIZED DISC TRAY</span>
+          <button
+            type="button"
+            class="eject-btn"
+            [class.active]="audioEngine.trayOpen()"
+            (click)="audioEngine.toggleTray()"
+            title="Open / Close Disc Tray (Eject)"
+          >
+            <span class="eject-icon">⏏</span>
+            <span class="eject-label">OPEN/CLOSE</span>
+          </button>
+        </div>
+
+        <!-- The Disc Chamber / Holographic CD -->
+        <div class="disc-viewport" [class.spinning]="audioEngine.isPlaying() && !audioEngine.trayOpen()">
+          <div class="holographic-disc">
+            <!-- Concentric Laser Data Grooves -->
+            <div class="disc-groove outer"></div>
+            <div class="disc-groove mid"></div>
+            <div class="disc-groove inner"></div>
+            <!-- Rainbow Holographic Sheen Layer -->
+            <div class="disc-rainbow-sheen"></div>
+            <!-- Center Spindle Clamp -->
+            <div class="center-clamp">
+              <span class="clamp-hole"></span>
+            </div>
+          </div>
+          <!-- Optical Laser Head (illuminates during playback) -->
+          <div class="laser-pickup-indicator" [class.active]="audioEngine.isPlaying()"></div>
+        </div>
+      </div>
+
+      @if (audioEngine.trayOpen()) {
+        <!-- Tray Open Disc Loader Overlay -->
+        <div class="tray-open-card">
+          <span class="card-prompt">SELECT CD DISC SOURCE</span>
+          <div class="tray-source-actions">
+            <button type="button" class="tray-action-btn" (click)="playDemo(0); audioEngine.toggleTray()">
+              KENWOOD DEMO DISC
+            </button>
+            <label class="tray-action-btn file-loader">
+              INSERT LOCAL AUDIO
+              <input type="file" multiple accept="audio/*,.mp3,.flac,.wav,.ogg,.m4a" (change)="onFileSelected($event); audioEngine.toggleTray()" style="display: none;" />
+            </label>
+            <button type="button" class="tray-action-btn jellyfin" (click)="openJellyfin.emit(); audioEngine.toggleTray()">
+              CONNECT JELLYFIN
+            </button>
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- Center Section: Smoked Acrylic VFD Display Window -->
+    <section class="cd-vfd-window">
+      <!-- VFD Glass Reflection Highlight -->
+      <div class="vfd-glass-sheen"></div>
+
+      <!-- Top VFD Status Row -->
+      <div class="vfd-status-row">
+        <div class="vfd-disc-indicator" [class.active]="audioEngine.isPlaying()">
+          <span class="disc-symbol">◎</span>
+          <span class="label">DISC</span>
+        </div>
+
+        <div class="vfd-flags">
+          <span class="flag" [class.lit]="audioEngine.isPlaying()">PLAY ▶</span>
+          <span class="flag" [class.lit]="!audioEngine.isPlaying() && audioEngine.currentTrack() && audioEngine.currentTime() > 0">PAUSE ⏸</span>
+          <span class="flag" [class.lit]="audioEngine.repeatMode() !== 'off'">
+            {{ audioEngine.repeatMode() === 'one' ? 'REPEAT 1' : 'REPEAT' }}
+          </span>
+          <span class="flag" [class.lit]="audioEngine.shuffle()">SHUFFLE</span>
+          <span class="flag lit hi-res">OPTICAL OUT</span>
+          <span class="flag lit">{{ audioEngine.currentTrack()?.format || 'STEREO' }}</span>
+        </div>
+      </div>
+
+      <!-- Center Digital Numeric Readout (Track, Index, Time) -->
+      <div class="vfd-main-readouts">
+        <!-- Track Number Block -->
+        <div class="readout-block track-block">
+          <span class="block-label">TRACK</span>
+          <div class="digital-digits track-digits">{{ currentTrackNumber() }}</div>
+        </div>
+
+        <!-- Index Block -->
+        <div class="readout-block index-block">
+          <span class="block-label">INDEX</span>
+          <div class="digital-digits index-digits">01</div>
+        </div>
+
+        <!-- Time Counter Block (Elapsed / Remain / Total) -->
+        <div class="readout-block time-block" (click)="audioEngine.cycleTimeMode()" title="Click to cycle Time Mode">
+          <div class="time-sub-labels">
+            <span class="sub-label" [class.lit]="audioEngine.timeMode() === 'elapsed'">ELAPSED</span>
+            <span class="sub-label" [class.lit]="audioEngine.timeMode() === 'remain'">REMAIN</span>
+            <span class="sub-label" [class.lit]="audioEngine.timeMode() === 'total'">TOTAL REMAIN</span>
+          </div>
+
+          <div class="digital-digits time-digits">
+            <span class="time-sign">{{ timeDisplay().sign }}</span>
+            <span class="time-part min">{{ timeDisplay().min }}</span>
+            <span class="time-colon" [class.blinking]="audioEngine.isPlaying()">:</span>
+            <span class="time-part sec">{{ timeDisplay().sec }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1-20 CD Music Calendar Grid (Iconic 90s Hi-Fi CD Feature) -->
+      <div class="vfd-music-calendar">
+        <div class="calendar-header">
+          <span class="calendar-title">TRACK MATRIX CALENDAR</span>
+          <span class="total-tracks">TOTAL: {{ totalTracksCount() }} TRACKS</span>
+        </div>
+
+        <div class="calendar-grid">
+          @for (num of trackCalendar; track num) {
+            <button
+              type="button"
+              class="cal-cell"
+              [class.available]="isTrackAvailable(num)"
+              [class.selected]="isTrackSelected(num)"
+              [class.playing]="isTrackPlaying(num)"
+              [class.played]="isTrackPlayed(num)"
+              [disabled]="!isTrackAvailable(num)"
+              (click)="jumpToTrack(num)"
+              [title]="'Play Track ' + num"
+            >
+              {{ num }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Dot-Matrix Scrolling Track Title Banner -->
+      <div class="vfd-dot-matrix-banner">
+        <div class="dot-matrix-ticker" [class.scrolling]="audioEngine.isPlaying()">
+          @if (audioEngine.currentTrack(); as t) {
+            <span class="ticker-text">
+              ▶ TRACK {{ currentTrackNumber() }}: {{ t.title }} — {{ t.artist }} ({{ t.album }}) • {{ t.format || 'CD AUDIO' }} • KENWOOD DP-2400 HI-FI
+            </span>
+          } @else {
+            <span class="ticker-text standby">
+              • KENWOOD COMPACT DISC DIGITAL AUDIO PLAYER DP-2400 • READY • INSERT DISC •
+            </span>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Section: 10-Key Direct Access Keypad & Function Buttons -->
+    <section class="cd-keypad-section">
+      <span class="keypad-title">DIRECT TRACK ACCESS</span>
+      <div class="keypad-matrix">
+        <button type="button" class="key-btn" (click)="onKeypadClick(1)">1</button>
+        <button type="button" class="key-btn" (click)="onKeypadClick(2)">2</button>
+        <button type="button" class="key-btn" (click)="onKeypadClick(3)">3</button>
+        <button type="button" class="key-btn" (click)="onKeypadClick(4)">4</button>
+        <button type="button" class="key-btn" (click)="onKeypadClick(5)">5</button>
+        <button type="button" class="key-btn" (click)="onKeypadClick(6)">6</button>
+        <button type="button" class="key-btn" (click)="onKeypadClick(7)">7</button>
+        <button type="button" class="key-btn" (click)="onKeypadClick(8)">8</button>
+        <button type="button" class="key-btn" (click)="onKeypadClick(9)">9</button>
+        <button type="button" class="key-btn" (click)="onKeypadClick(10)">10</button>
+        <button type="button" class="key-btn wide-key" (click)="audioEngine.cycleTimeMode()">TIME</button>
+        <button type="button" class="key-btn wide-key" [class.active]="audioEngine.repeatMode() !== 'off'" (click)="audioEngine.cycleRepeat()">
+          {{ audioEngine.repeatMode() === 'one' ? 'REP 1' : 'REPEAT' }}
+        </button>
+      </div>
+
+      <div class="aux-functions">
+        <button
+          type="button"
+          class="aux-btn"
+          [class.active]="audioEngine.shuffle()"
+          (click)="audioEngine.toggleShuffle()"
+          title="Random Track Shuffle"
+        >
+          RANDOM
+        </button>
+        <button
+          type="button"
+          class="aux-btn"
+          (click)="audioEngine.toggleTray()"
+          title="Eject CD Tray"
+        >
+          TRAY
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Bottom Transport Bar & Headphone Stage -->
+  <footer class="cd-transport-deck">
+    <!-- Precision Laser Time Scrubber Bar -->
+    <div class="laser-scrubber-row">
+      <span class="scrub-label">TRACK PROGRESS</span>
+      <div class="scrub-track-wrapper">
+        <input
+          type="range"
+          class="cd-laser-slider"
+          [min]="0"
+          [max]="audioEngine.duration() || 100"
+          [value]="audioEngine.currentTime()"
+          (input)="onSeekChange($event)"
+        />
+        <div class="laser-track-scale">
+          <span>0%</span>
+          <span>25%</span>
+          <span>50%</span>
+          <span>75%</span>
+          <span>100%</span>
+        </div>
+      </div>
+      <span class="scrub-time-val">{{ formatTime(audioEngine.currentTime()) }} / {{ formatTime(audioEngine.duration()) }}</span>
+    </div>
+
+    <div class="transport-controls-cluster">
+      <!-- Chunky Tactile Mechanical CD Buttons -->
+      <div class="mechanical-buttons">
+        <!-- Search Backward (5s) -->
+        <button
+          type="button"
+          class="cd-tactile-btn search-btn"
+          (click)="audioEngine.seekRelative(-5)"
+          title="Search Reverse (◀◀ 5s)"
+        >
+          <span class="icon">◀◀</span>
+          <span class="btn-subtext">SEARCH</span>
+        </button>
+
+        <!-- Track Skip Backward -->
+        <button
+          type="button"
+          class="cd-tactile-btn skip-btn"
+          (click)="audioEngine.previous()"
+          title="Previous Track (|◀◀)"
+        >
+          <span class="icon">|◀◀</span>
+          <span class="btn-subtext">SKIP</span>
+        </button>
+
+        <!-- STOP -->
+        <button
+          type="button"
+          class="cd-tactile-btn stop-btn"
+          (click)="audioEngine.stop()"
+          title="Stop Playback (■)"
+        >
+          <span class="icon">■</span>
+          <span class="btn-subtext">STOP</span>
+        </button>
+
+        <!-- PAUSE -->
+        <button
+          type="button"
+          class="cd-tactile-btn pause-btn"
+          [class.active]="!audioEngine.isPlaying() && audioEngine.currentTrack() && audioEngine.currentTime() > 0"
+          (click)="audioEngine.pause()"
+          title="Pause (❚❚)"
+        >
+          <span class="led-jewel amber" [class.on]="!audioEngine.isPlaying() && audioEngine.currentTrack() && audioEngine.currentTime() > 0"></span>
+          <span class="icon">❚❚</span>
+          <span class="btn-subtext">PAUSE</span>
+        </button>
+
+        <!-- PLAY (Prominent large button) -->
+        <button
+          type="button"
+          class="cd-tactile-btn play-btn"
+          [class.active]="audioEngine.isPlaying()"
+          (click)="audioEngine.togglePlay()"
+          title="Play (▶)"
+        >
+          <span class="led-jewel green" [class.on]="audioEngine.isPlaying()"></span>
+          <span class="icon play-icon">▶</span>
+          <span class="btn-subtext">PLAY</span>
+        </button>
+
+        <!-- Track Skip Forward -->
+        <button
+          type="button"
+          class="cd-tactile-btn skip-btn"
+          (click)="audioEngine.next()"
+          title="Next Track (▶▶|)"
+        >
+          <span class="icon">▶▶|</span>
+          <span class="btn-subtext">SKIP</span>
+        </button>
+
+        <!-- Search Forward (5s) -->
+        <button
+          type="button"
+          class="cd-tactile-btn search-btn"
+          (click)="audioEngine.seekRelative(5)"
+          title="Search Forward (▶▶ 5s)"
+        >
+          <span class="icon">▶▶</span>
+          <span class="btn-subtext">SEARCH</span>
+        </button>
+      </div>
+
+      <!-- Right Output Stage: Headphone Jack & Level Knob -->
+      <div class="headphone-output-stage">
+        <div class="phone-jack-graphic">
+          <div class="jack-bezel">
+            <div class="jack-hole"></div>
+          </div>
+          <span class="jack-label">PHONES</span>
+        </div>
+
+        <div class="level-control-cluster">
+          <span class="level-title">OUTPUT LEVEL</span>
+          <div class="level-slider-wrap">
+            <button type="button" class="mute-toggle-btn" (click)="audioEngine.toggleMute()" title="Mute Output">
+              <span class="mute-dot" [class.muted]="audioEngine.isMuted()"></span>
+            </button>
+            <input
+              type="range"
+              class="phones-level-slider"
+              min="0"
+              max="1"
+              step="0.01"
+              [value]="audioEngine.volume()"
+              (input)="onVolumeChange($event)"
+            />
+          </div>
+        </div>
+
+        <!-- Quick Source Select Buttons -->
+        <div class="cd-source-pills">
+          <button type="button" class="source-pill synth" (click)="playDemo(0)" title="Play Live 24-Band Synthesizer">
+            SYNTH
+          </button>
+          <label class="source-pill local" title="Open Audio Files">
+            FILES
+            <input type="file" multiple accept="audio/*,.mp3,.flac,.wav,.ogg,.m4a" (change)="onFileSelected($event)" style="display: none;" />
+          </label>
+          <button
+            type="button"
+            class="source-pill jellyfin"
+            [class.connected]="jellyfin.connectionStatus() === 'connected'"
+            (click)="openJellyfin.emit()"
+            title="Connect Jellyfin Server"
+          >
+            JELLYFIN
+          </button>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>

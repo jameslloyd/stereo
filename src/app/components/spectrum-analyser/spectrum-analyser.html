@@ -1,0 +1,216 @@
+<div class="hifi-chassis">
+  <!-- Top Faceplate Bezel -->
+  <header class="chassis-header">
+    <div class="brand-cluster">
+      <div class="brand-logo">KENWOOD</div>
+      <div class="model-badge">GE-2400</div>
+      <div class="sub-label">24-CHANNEL STEREO SPECTRUM ANALYZER</div>
+    </div>
+
+    <div class="system-status">
+      <div class="status-led-group">
+        <span class="status-indicator" [class.active]="audioEngine.isPlaying()"></span>
+        <span class="status-text">{{ audioEngine.isPlaying() ? 'ANALYZE ACTIVE' : 'STANDBY' }}</span>
+      </div>
+
+      <!-- Quick VU indicators -->
+      <div class="mini-vu-cluster">
+        <div class="vu-row">
+          <span class="vu-label">L</span>
+          <div class="vu-meter-bar">
+            <div class="vu-meter-fill" [style.width.%]="leftRms() * 100"></div>
+          </div>
+        </div>
+        <div class="vu-row">
+          <span class="vu-label">R</span>
+          <div class="vu-meter-bar">
+            <div class="vu-meter-fill" [style.width.%]="rightRms() * 100"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Setup Menu Trigger Button -->
+      <div class="setup-menu-anchor">
+        <button
+          type="button"
+          class="hifi-setup-btn"
+          [class.active]="isSettingsMenuOpen()"
+          (click)="toggleSettingsMenu()"
+          title="Spectrum Analyzer Display Setup"
+        >
+          <span class="setup-icon">⚙</span>
+          <span class="setup-text">SETUP</span>
+          <span class="arrow-indicator">{{ isSettingsMenuOpen() ? '▲' : '▼' }}</span>
+        </button>
+
+        <!-- Dropdown Settings Panel -->
+        @if (isSettingsMenuOpen()) {
+          <div class="settings-dropdown" (click)="$event.stopPropagation()">
+            <div class="dropdown-header">
+              <span class="dropdown-title">GE-2400 DISPLAY CONFIGURATION</span>
+              <button type="button" class="close-menu-btn" (click)="closeSettingsMenu()">&times;</button>
+            </div>
+
+            <div class="dropdown-body">
+              <!-- Mode Selection -->
+              <div class="config-row">
+                <span class="row-label">DISPLAY MODE</span>
+                <div class="pill-options">
+                  <button
+                    type="button"
+                    class="opt-pill"
+                    [class.active]="layout() === 'split'"
+                    (click)="setLayout('split')"
+                  >
+                    SPLIT L/R
+                  </button>
+                  <button
+                    type="button"
+                    class="opt-pill"
+                    [class.active]="layout() === 'side-by-side'"
+                    (click)="setLayout('side-by-side')"
+                  >
+                    DUAL STEREO
+                  </button>
+                  <button
+                    type="button"
+                    class="opt-pill"
+                    [class.active]="layout() === 'mirror'"
+                    (click)="setLayout('mirror')"
+                  >
+                    MIRROR
+                  </button>
+                </div>
+              </div>
+
+              <!-- Peak Hold Selection -->
+              <div class="config-row">
+                <span class="row-label">PEAK HOLD DYNAMICS</span>
+                <div class="pill-options">
+                  <button
+                    type="button"
+                    class="opt-pill"
+                    [class.active]="peakHold() === 'normal'"
+                    (click)="setPeakHold('normal')"
+                  >
+                    NORMAL
+                  </button>
+                  <button
+                    type="button"
+                    class="opt-pill"
+                    [class.active]="peakHold() === 'slow'"
+                    (click)="setPeakHold('slow')"
+                  >
+                    SLOW
+                  </button>
+                  <button
+                    type="button"
+                    class="opt-pill"
+                    [class.active]="peakHold() === 'infinite'"
+                    (click)="setPeakHold('infinite')"
+                  >
+                    INFINITE
+                  </button>
+                  <button
+                    type="button"
+                    class="opt-pill"
+                    [class.active]="peakHold() === 'off'"
+                    (click)="setPeakHold('off')"
+                  >
+                    OFF
+                  </button>
+                </div>
+              </div>
+
+              <!-- Color Scheme Selection -->
+              <div class="config-row">
+                <span class="row-label">VFD COLOR THEME</span>
+                <div class="pill-options">
+                  <button
+                    type="button"
+                    class="opt-pill theme-cyan"
+                    [class.active]="theme() === 'vfd-cyan'"
+                    (click)="setTheme('vfd-cyan')"
+                  >
+                    VFD CYAN
+                  </button>
+                  <button
+                    type="button"
+                    class="opt-pill theme-amber"
+                    [class.active]="theme() === 'kenwood-amber'"
+                    (click)="setTheme('kenwood-amber')"
+                  >
+                    AMBER GOLD
+                  </button>
+                  <button
+                    type="button"
+                    class="opt-pill theme-green"
+                    [class.active]="theme() === 'technics-green'"
+                    (click)="setTheme('technics-green')"
+                  >
+                    EMERALD
+                  </button>
+                  <button
+                    type="button"
+                    class="opt-pill theme-blue"
+                    [class.active]="theme() === 'ice-blue'"
+                    (click)="setTheme('ice-blue')"
+                  >
+                    ICE BLUE
+                  </button>
+                </div>
+              </div>
+
+              <!-- Sensitivity Control -->
+              <div class="config-row">
+                <span class="row-label">SENSITIVITY ({{ sensitivity() }}x)</span>
+                <div class="sensitivity-slider-box">
+                  <button type="button" class="stepper-btn" (click)="adjustSensitivity(-0.2)">-</button>
+                  <input
+                    type="range"
+                    class="config-slider"
+                    min="0.4"
+                    max="2.5"
+                    step="0.1"
+                    [value]="sensitivity()"
+                    (input)="sensitivity.set(+$any($event.target).value)"
+                  />
+                  <button type="button" class="stepper-btn" (click)="adjustSensitivity(0.2)">+</button>
+                </div>
+              </div>
+
+              <!-- VFD Phosphor Options -->
+              <div class="config-row">
+                <span class="row-label">VFD RENDERING OPTIONS</span>
+                <div class="pill-options">
+                  <button
+                    type="button"
+                    class="opt-pill"
+                    [class.active]="ghostSegments()"
+                    (click)="ghostSegments.set(!ghostSegments())"
+                  >
+                    GHOST PHOSPHOR: {{ ghostSegments() ? 'ON' : 'OFF' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="opt-pill"
+                    [class.active]="showGrid()"
+                    (click)="showGrid.set(!showGrid())"
+                  >
+                    DECIBEL GRID: {{ showGrid() ? 'ON' : 'OFF' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </header>
+
+  <!-- Smoked Glass Display Window Container -->
+  <!-- Note: content-visibility: auto applied for efficient-background-processing compliance -->
+  <div #containerRef class="vfd-display-window">
+    <canvas #visualizerCanvas class="vfd-canvas"></canvas>
+  </div>
+</div>
