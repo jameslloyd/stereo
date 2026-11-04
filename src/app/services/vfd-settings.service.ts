@@ -1,5 +1,6 @@
 import { Injectable, signal, effect } from '@angular/core';
 import { VisualizerLayout, VisualizerTheme, PeakHoldMode } from '../models/audio.models';
+import { getCookieItem, setCookieItem } from '../utils/cookie-storage';
 
 const STORAGE_KEY = 'mplayer_vfd_settings';
 
@@ -75,6 +76,7 @@ export class VfdSettingsService {
   public readonly layout = signal<VisualizerLayout>('split');
   public readonly peakHold = signal<PeakHoldMode>('normal');
   public readonly sensitivity = signal<number>(1.2);
+  public readonly glowIntensity = signal<number>(1.0);
   public readonly segmentCount = signal<number>(16);
   public readonly ghostSegments = signal<boolean>(true);
   public readonly showGrid = signal<boolean>(true);
@@ -86,6 +88,15 @@ export class VfdSettingsService {
     // Synchronize CSS class and variables on documentElement / body when theme or settings change
     effect(() => {
       const curTheme = this.theme();
+      // Read all signals so effect triggers whenever any setting changes
+      this.layout();
+      this.peakHold();
+      this.sensitivity();
+      this.glowIntensity();
+      this.segmentCount();
+      this.ghostSegments();
+      this.showGrid();
+
       this.applyThemeToDOM(curTheme);
       this.saveSettings();
     });
@@ -134,6 +145,11 @@ export class VfdSettingsService {
     this.saveSettings();
   }
 
+  public setGlowIntensity(val: number): void {
+    this.glowIntensity.set(Math.max(0, Math.min(2, val)));
+    this.saveSettings();
+  }
+
   public setSegmentCount(count: number): void {
     this.segmentCount.set(count);
     this.saveSettings();
@@ -151,40 +167,38 @@ export class VfdSettingsService {
 
   private loadSavedSettings(): void {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const raw = window.localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed.theme && VFD_THEME_PALETTES[parsed.theme as VisualizerTheme]) {
-            this.theme.set(parsed.theme);
-          }
-          if (parsed.layout) this.layout.set(parsed.layout);
-          if (parsed.peakHold) this.peakHold.set(parsed.peakHold);
-          if (typeof parsed.sensitivity === 'number') this.sensitivity.set(parsed.sensitivity);
-          if (typeof parsed.segmentCount === 'number') this.segmentCount.set(parsed.segmentCount);
-          if (typeof parsed.ghostSegments === 'boolean') this.ghostSegments.set(parsed.ghostSegments);
-          if (typeof parsed.showGrid === 'boolean') this.showGrid.set(parsed.showGrid);
+      const raw = getCookieItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.theme && VFD_THEME_PALETTES[parsed.theme as VisualizerTheme]) {
+          this.theme.set(parsed.theme);
         }
+        if (parsed.layout) this.layout.set(parsed.layout);
+        if (parsed.peakHold) this.peakHold.set(parsed.peakHold);
+        if (typeof parsed.sensitivity === 'number') this.sensitivity.set(parsed.sensitivity);
+        if (typeof parsed.glowIntensity === 'number') this.glowIntensity.set(parsed.glowIntensity);
+        if (typeof parsed.segmentCount === 'number') this.segmentCount.set(parsed.segmentCount);
+        if (typeof parsed.ghostSegments === 'boolean') this.ghostSegments.set(parsed.ghostSegments);
+        if (typeof parsed.showGrid === 'boolean') this.showGrid.set(parsed.showGrid);
       }
     } catch (e) {
-      console.warn('Could not load VFD settings from localStorage', e);
+      console.warn('Could not load VFD settings from cookie', e);
     }
   }
 
   private saveSettings(): void {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const payload = {
-          theme: this.theme(),
-          layout: this.layout(),
-          peakHold: this.peakHold(),
-          sensitivity: this.sensitivity(),
-          segmentCount: this.segmentCount(),
-          ghostSegments: this.ghostSegments(),
-          showGrid: this.showGrid()
-        };
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      }
+      const payload = {
+        theme: this.theme(),
+        layout: this.layout(),
+        peakHold: this.peakHold(),
+        sensitivity: this.sensitivity(),
+        glowIntensity: this.glowIntensity(),
+        segmentCount: this.segmentCount(),
+        ghostSegments: this.ghostSegments(),
+        showGrid: this.showGrid()
+      };
+      setCookieItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {}
   }
 }

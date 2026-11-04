@@ -173,9 +173,27 @@
                     max="2.5"
                     step="0.1"
                     [value]="sensitivity()"
-                    (input)="sensitivity.set(+$any($event.target).value)"
+                    (input)="vfdSettings.setSensitivity(+$any($event.target).value)"
                   />
                   <button type="button" class="stepper-btn" (click)="adjustSensitivity(0.2)">+</button>
+                </div>
+              </div>
+
+              <!-- Segment Glow Intensity Control -->
+              <div class="config-row">
+                <span class="row-label">SEGMENT GLOW ({{ (glowIntensity() * 100) | number:'1.0-0' }}%)</span>
+                <div class="sensitivity-slider-box">
+                  <button type="button" class="stepper-btn" (click)="adjustGlowIntensity(-0.2)">-</button>
+                  <input
+                    type="range"
+                    class="config-slider glow-slider"
+                    min="0"
+                    max="2.0"
+                    step="0.1"
+                    [value]="glowIntensity()"
+                    (input)="onGlowSliderInput(+$any($event.target).value)"
+                  />
+                  <button type="button" class="stepper-btn" (click)="adjustGlowIntensity(0.2)">+</button>
                 </div>
               </div>
 
@@ -187,7 +205,7 @@
                     type="button"
                     class="opt-pill"
                     [class.active]="ghostSegments()"
-                    (click)="ghostSegments.set(!ghostSegments())"
+                    (click)="toggleGhostSegments()"
                   >
                     GHOST PHOSPHOR: {{ ghostSegments() ? 'ON' : 'OFF' }}
                   </button>
@@ -195,7 +213,7 @@
                     type="button"
                     class="opt-pill"
                     [class.active]="showGrid()"
-                    (click)="showGrid.set(!showGrid())"
+                    (click)="toggleShowGrid()"
                   >
                     DECIBEL GRID: {{ showGrid() ? 'ON' : 'OFF' }}
                   </button>

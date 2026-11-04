@@ -6,6 +6,10 @@ import { Injectable } from '@angular/core';
 export class SynthGeneratorService {
   private isPlaying = false;
   private timerId: any = null;
+  private worker: Worker | null = null;
+  private nextNoteTime = 0;
+  private readonly scheduleAheadTime = 0.2; // Schedule notes 200ms ahead on AudioContext clock
+  private readonly lookaheadMs = 25;
   private step = 0;
   private bpm = 118;
   private audioCtx: AudioContext | null = null;
@@ -29,19 +33,76 @@ export class SynthGeneratorService {
     if (this.isPlaying || !this.audioCtx || !this.destinationNode) return;
     this.isPlaying = true;
     this.step = 0;
+    this.nextNoteTime = this.audioCtx.currentTime + 0.02;
 
-    const intervalMs = (60 / this.bpm / 4) * 1000; // 16th notes
-    this.timerId = setInterval(() => {
-      this.tick();
-    }, intervalMs);
+    this.startScheduler();
   }
 
   public stop() {
     if (!this.isPlaying) return;
     this.isPlaying = false;
+    this.stopScheduler();
+  }
+
+  private startScheduler() {
+    this.stopScheduler();
+
+    // Use a Web Worker timer when available so background/unfocused window throttling doesn't slow playback
+    if (typeof Worker !== 'undefined' && typeof Blob !== 'undefined' && typeof URL !== 'undefined') {
+      try {
+        const blob = new Blob([
+          `let id = null;
+           self.onmessage = (e) => {
+             if (e.data === 'start') {
+               if (id) clearInterval(id);
+               id = setInterval(() => self.postMessage('tick'), ${this.lookaheadMs});
+             } else if (e.data === 'stop') {
+               if (id) { clearInterval(id); id = null; }
+             }
+           };`
+        ], { type: 'application/javascript' });
+        this.worker = new Worker(URL.createObjectURL(blob));
+        this.worker.onmessage = () => this.scheduleNotes();
+        this.worker.postMessage('start');
+        this.scheduleNotes();
+        return;
+      } catch (e) {
+        // Fallback to standard setInterval in environments without Worker support
+      }
+    }
+
+    this.timerId = setInterval(() => {
+      this.scheduleNotes();
+    }, this.lookaheadMs);
+    this.scheduleNotes();
+  }
+
+  private stopScheduler() {
+    if (this.worker) {
+      try {
+        this.worker.postMessage('stop');
+        this.worker.terminate();
+      } catch (e) {}
+      this.worker = null;
+    }
     if (this.timerId) {
       clearInterval(this.timerId);
       this.timerId = null;
+    }
+  }
+
+  private scheduleNotes() {
+    if (!this.isPlaying || !this.audioCtx || !this.destinationNode) return;
+    const stepDurationSec = 60 / this.bpm / 4; // 16th note duration in seconds
+
+    // If the thread was delayed excessively, resync to current AudioContext time
+    if (this.nextNoteTime < this.audioCtx.currentTime - 0.25) {
+      this.nextNoteTime = this.audioCtx.currentTime;
+    }
+
+    while (this.nextNoteTime < this.audioCtx.currentTime + this.scheduleAheadTime) {
+      this.tick(this.nextNoteTime);
+      this.nextNoteTime += stepDurationSec;
     }
   }
 
@@ -49,9 +110,9 @@ export class SynthGeneratorService {
     return this.isPlaying;
   }
 
-  private tick() {
+  private tick(scheduleTime?: number) {
     if (!this.audioCtx || !this.destinationNode) return;
-    const now = this.audioCtx.currentTime;
+    const now = scheduleTime ?? this.audioCtx.currentTime;
     const barStep = this.step % 16;
     const chordIndex = Math.floor((this.step % 64) / 16);
 

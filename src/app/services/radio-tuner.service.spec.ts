@@ -3,12 +3,14 @@ import { RadioTunerService } from './radio-tuner.service';
 import { AudioEngineService } from './audio-engine.service';
 import { SynthGeneratorService } from './synth-generator.service';
 import { BBC_RADIO_PRESETS } from '../models/radio.models';
+import { clearAllAppCookies } from '../utils/cookie-storage';
 
 describe('RadioTunerService', () => {
   let service: RadioTunerService;
   let audioEngine: AudioEngineService;
 
   beforeEach(() => {
+    clearAllAppCookies();
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.clear();
@@ -24,6 +26,7 @@ describe('RadioTunerService', () => {
   });
 
   afterEach(() => {
+    clearAllAppCookies();
     try {
       audioEngine?.stop();
       if (typeof window !== 'undefined' && window.localStorage) {

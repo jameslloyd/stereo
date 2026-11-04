@@ -2,6 +2,9 @@ import { Injectable, signal } from '@angular/core';
 import Hls from 'hls.js';
 import { FREQUENCY_BANDS_24, FrequencyBand, Track } from '../models/audio.models';
 import { SynthGeneratorService } from './synth-generator.service';
+import { getCookieItem, setCookieItem } from '../utils/cookie-storage';
+
+const AUDIO_SETTINGS_KEY = 'mplayer_audio_settings';
 
 export interface ChannelAnalysis {
   bandLevels: number[]; // 24 values, 0.0 - 1.0
@@ -58,9 +61,47 @@ export class AudioEngineService {
     this.audioElement.crossOrigin = 'anonymous';
     this.audioElement.preload = 'auto';
 
+    this.loadAudioSettings();
     this.setupAudioElementListeners();
     this.setupMediaSessionHandlers();
     this.setupGlobalKeyboardListeners();
+  }
+
+  private loadAudioSettings(): void {
+    try {
+      const raw = getCookieItem(AUDIO_SETTINGS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.volume === 'number') {
+          this.volume.set(Math.max(0, Math.min(1, parsed.volume)));
+        }
+        if (typeof parsed.isMuted === 'boolean') {
+          this.isMuted.set(parsed.isMuted);
+        }
+        if (parsed.repeatMode === 'off' || parsed.repeatMode === 'all' || parsed.repeatMode === 'one') {
+          this.repeatMode.set(parsed.repeatMode);
+        }
+        if (typeof parsed.shuffle === 'boolean') {
+          this.shuffle.set(parsed.shuffle);
+        }
+        if (parsed.timeMode === 'elapsed' || parsed.timeMode === 'remain' || parsed.timeMode === 'total') {
+          this.timeMode.set(parsed.timeMode);
+        }
+      }
+    } catch (e) {}
+  }
+
+  private saveAudioSettings(): void {
+    try {
+      const payload = {
+        volume: this.volume(),
+        isMuted: this.isMuted(),
+        repeatMode: this.repeatMode(),
+        shuffle: this.shuffle(),
+        timeMode: this.timeMode()
+      };
+      setCookieItem(AUDIO_SETTINGS_KEY, JSON.stringify(payload));
+    } catch (e) {}
   }
 
   private initAudioContext() {
@@ -81,7 +122,7 @@ export class AudioEngineService {
     }
 
     this.masterGainNode = this.audioCtx.createGain();
-    this.masterGainNode.gain.value = this.volume();
+    this.masterGainNode.gain.value = this.isMuted() ? 0 : this.volume();
 
     this.splitterNode = this.audioCtx.createChannelSplitter(2);
     this.mergerNode = this.audioCtx.createChannelMerger(2);
@@ -308,6 +349,7 @@ export class AudioEngineService {
     if (this.masterGainNode) {
       this.masterGainNode.gain.setValueAtTime(this.isMuted() ? 0 : clamped, this.audioCtx?.currentTime || 0);
     }
+    this.saveAudioSettings();
   }
 
   public toggleMute(): void {
@@ -316,6 +358,7 @@ export class AudioEngineService {
     if (this.masterGainNode) {
       this.masterGainNode.gain.setValueAtTime(nextMuted ? 0 : this.volume(), this.audioCtx?.currentTime || 0);
     }
+    this.saveAudioSettings();
   }
 
   public stop(): void {
@@ -357,16 +400,19 @@ export class AudioEngineService {
     const modes: Array<'off' | 'all' | 'one'> = ['off', 'all', 'one'];
     const idx = modes.indexOf(this.repeatMode());
     this.repeatMode.set(modes[(idx + 1) % modes.length]);
+    this.saveAudioSettings();
   }
 
   public toggleShuffle(): void {
     this.shuffle.set(!this.shuffle());
+    this.saveAudioSettings();
   }
 
   public cycleTimeMode(): void {
     const modes: Array<'elapsed' | 'remain' | 'total'> = ['elapsed', 'remain', 'total'];
     const idx = modes.indexOf(this.timeMode());
     this.timeMode.set(modes[(idx + 1) % modes.length]);
+    this.saveAudioSettings();
   }
 
   public toggleTray(): void {

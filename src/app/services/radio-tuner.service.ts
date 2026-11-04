@@ -2,6 +2,9 @@ import { Injectable, signal, inject } from '@angular/core';
 import { BBC_RADIO_PRESETS, BbcRadioPreset, RadioBand } from '../models/radio.models';
 import { AudioEngineService } from './audio-engine.service';
 import { Track } from '../models/audio.models';
+import { getCookieItem, setCookieItem } from '../utils/cookie-storage';
+
+const TUNER_SETTINGS_KEY = 'mplayer_tuner_settings';
 
 @Injectable({
   providedIn: 'root'
@@ -22,7 +25,72 @@ export class RadioTunerService {
   public readonly isPowerOn = signal<boolean>(true);
   public readonly isScanning = signal<boolean>(false);
 
-  constructor() {}
+  constructor() {
+    this.loadTunerSettings();
+  }
+
+  private loadTunerSettings(): void {
+    try {
+      const raw = getCookieItem(TUNER_SETTINGS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.band === 'FM' || parsed.band === 'AM' || parsed.band === 'DAB') {
+          this.band.set(parsed.band);
+        }
+        if (parsed.stereoMode === 'auto-stereo' || parsed.stereoMode === 'mono') {
+          this.stereoMode.set(parsed.stereoMode);
+        }
+        if (typeof parsed.isPowerOn === 'boolean') {
+          this.isPowerOn.set(parsed.isPowerOn);
+        }
+        if (parsed.activePresetId) {
+          const found = this.presets().find(p => p.id === parsed.activePresetId);
+          if (found) {
+            this.activePreset.set(found);
+            this.frequencyMhz.set(found.frequencyMhz);
+            this.frequencyDisplay.set(found.frequencyStr);
+            this.band.set(found.band);
+            this.isTuned.set(true);
+            this.isStereo.set(found.band !== 'AM' && this.stereoMode() === 'auto-stereo');
+            this.signalStrength.set(5);
+            this.rdsText.set(found.rdsText);
+            return;
+          }
+        }
+        if (typeof parsed.frequencyMhz === 'number') {
+          this.frequencyMhz.set(parsed.frequencyMhz);
+        }
+        if (typeof parsed.frequencyDisplay === 'string') {
+          this.frequencyDisplay.set(parsed.frequencyDisplay);
+        }
+        if (parsed.activePresetId === null) {
+          this.activePreset.set(null);
+          if (typeof parsed.isTuned === 'boolean') this.isTuned.set(parsed.isTuned);
+          if (typeof parsed.isStereo === 'boolean') this.isStereo.set(parsed.isStereo);
+          if (typeof parsed.signalStrength === 'number') this.signalStrength.set(parsed.signalStrength);
+          if (typeof parsed.rdsText === 'string') this.rdsText.set(parsed.rdsText);
+        }
+      }
+    } catch (e) {}
+  }
+
+  private saveTunerSettings(): void {
+    try {
+      const payload = {
+        activePresetId: this.activePreset()?.id ?? null,
+        frequencyMhz: this.frequencyMhz(),
+        frequencyDisplay: this.frequencyDisplay(),
+        band: this.band(),
+        stereoMode: this.stereoMode(),
+        isPowerOn: this.isPowerOn(),
+        isTuned: this.isTuned(),
+        isStereo: this.isStereo(),
+        signalStrength: this.signalStrength(),
+        rdsText: this.rdsText()
+      };
+      setCookieItem(TUNER_SETTINGS_KEY, JSON.stringify(payload));
+    } catch (e) {}
+  }
 
   public selectPreset(preset: BbcRadioPreset): void {
     if (!this.isPowerOn()) {
@@ -36,6 +104,7 @@ export class RadioTunerService {
     this.isStereo.set(preset.band !== 'AM' && this.stereoMode() === 'auto-stereo');
     this.signalStrength.set(5);
     this.rdsText.set(preset.rdsText);
+    this.saveTunerSettings();
 
     // Route audio to audio engine
     const track: Track = {
@@ -103,6 +172,7 @@ export class RadioTunerService {
       this.isStereo.set(false);
       this.rdsText.set('TUNING — NO RDS CARRIER DETECTED');
     }
+    this.saveTunerSettings();
   }
 
   public setBand(band: RadioBand): void {
@@ -127,6 +197,7 @@ export class RadioTunerService {
       this.isTuned.set(false);
       this.signalStrength.set(1);
       this.rdsText.set(`SEARCHING ${band} BAND...`);
+      this.saveTunerSettings();
     }
   }
 
@@ -134,11 +205,13 @@ export class RadioTunerService {
     const nextMode = this.stereoMode() === 'auto-stereo' ? 'mono' : 'auto-stereo';
     this.stereoMode.set(nextMode);
     this.isStereo.set(nextMode === 'auto-stereo' && this.band() !== 'AM' && this.isTuned());
+    this.saveTunerSettings();
   }
 
   public togglePower(): void {
     const nextPower = !this.isPowerOn();
     this.isPowerOn.set(nextPower);
+    this.saveTunerSettings();
     if (!nextPower) {
       // Tuner standby: pause radio audio if playing
       if (this.audioEngine.currentTrack()?.source === 'radio') {

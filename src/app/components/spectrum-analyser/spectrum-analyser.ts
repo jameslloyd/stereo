@@ -102,6 +102,7 @@ export class SpectrumAnalyserComponent implements AfterViewInit, OnDestroy {
   public readonly theme = this.vfdSettings.theme;
   public readonly peakHold = this.vfdSettings.peakHold;
   public readonly sensitivity = this.vfdSettings.sensitivity;
+  public readonly glowIntensity = this.vfdSettings.glowIntensity;
   public readonly segmentCount = this.vfdSettings.segmentCount;
   public readonly ghostSegments = this.vfdSettings.ghostSegments;
   public readonly showGrid = this.vfdSettings.showGrid;
@@ -115,7 +116,9 @@ export class SpectrumAnalyserComponent implements AfterViewInit, OnDestroy {
 
   private ctx: CanvasRenderingContext2D | null = null;
   private animationId: number | null = null;
+  private renderWorker: Worker | null = null;
   private isRendering = false;
+  private lastRenderTime = 0;
   private resizeObserver: ResizeObserver | null = null;
 
   private dpr = 1;
@@ -235,8 +238,13 @@ export class SpectrumAnalyserComponent implements AfterViewInit, OnDestroy {
   public startAnimation(): void {
     if (this.isRendering) return;
     this.isRendering = true;
+
+    // Start an unthrottled Web Worker 60fps ticker so canvas rendering continues at full frame rate
+    // even when the browser window loses focus or Chrome throttles requestAnimationFrame
+    this.startWorkerTicker();
+
     const loop = () => {
-      this.render();
+      this.renderFrame();
       if (this.isRendering) {
         this.animationId = requestAnimationFrame(loop);
       }
@@ -250,13 +258,68 @@ export class SpectrumAnalyserComponent implements AfterViewInit, OnDestroy {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
+    this.stopWorkerTicker();
+  }
+
+  private startWorkerTicker(): void {
+    this.stopWorkerTicker();
+    if (typeof Worker !== 'undefined' && typeof Blob !== 'undefined' && typeof URL !== 'undefined') {
+      try {
+        const blob = new Blob([
+          `let id = null;
+           self.onmessage = (e) => {
+             if (e.data === 'start') {
+               if (id) clearInterval(id);
+               id = setInterval(() => self.postMessage('frame'), 16);
+             } else if (e.data === 'stop') {
+               if (id) { clearInterval(id); id = null; }
+             }
+           };`
+        ], { type: 'application/javascript' });
+        this.renderWorker = new Worker(URL.createObjectURL(blob));
+        this.renderWorker.onmessage = () => {
+          if (!this.isRendering) return;
+          const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+          // Only trigger from worker if requestAnimationFrame hasn't rendered within the last ~20ms (i.e. rAF is throttled)
+          if (now - this.lastRenderTime >= 20) {
+            this.renderFrame();
+          }
+        };
+        this.renderWorker.postMessage('start');
+      } catch (e) {
+        // Ignore in restricted or test environments
+      }
+    }
+  }
+
+  private stopWorkerTicker(): void {
+    if (this.renderWorker) {
+      try {
+        this.renderWorker.postMessage('stop');
+        this.renderWorker.terminate();
+      } catch (e) {}
+      this.renderWorker = null;
+    }
+  }
+
+  private renderFrame(): void {
+    this.lastRenderTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    this.render();
   }
 
   public toggleLayout(): void {
     const current = this.layout();
-    if (current === 'split') this.layout.set('side-by-side');
-    else if (current === 'side-by-side') this.layout.set('mirror');
-    else this.layout.set('split');
+    if (current === 'split') this.vfdSettings.setLayout('side-by-side');
+    else if (current === 'side-by-side') this.vfdSettings.setLayout('mirror');
+    else this.vfdSettings.setLayout('split');
+  }
+
+  public toggleGhostSegments(): void {
+    this.vfdSettings.setGhostSegments(!this.ghostSegments());
+  }
+
+  public toggleShowGrid(): void {
+    this.vfdSettings.setShowGrid(!this.showGrid());
   }
 
   public toggleTheme(): void {
@@ -275,6 +338,16 @@ export class SpectrumAnalyserComponent implements AfterViewInit, OnDestroy {
     const current = this.sensitivity();
     const updated = Math.max(0.4, Math.min(2.5, current + delta));
     this.vfdSettings.setSensitivity(Math.round(updated * 10) / 10);
+  }
+
+  public adjustGlowIntensity(delta: number): void {
+    const current = this.glowIntensity();
+    const updated = Math.max(0, Math.min(2.0, current + delta));
+    this.vfdSettings.setGlowIntensity(Math.round(updated * 10) / 10);
+  }
+
+  public onGlowSliderInput(val: number): void {
+    this.vfdSettings.setGlowIntensity(val);
   }
 
   /**
@@ -543,6 +616,7 @@ export class SpectrumAnalyserComponent implements AfterViewInit, OnDestroy {
     const segmentGap = 1.8 * this.dpr;
     const totalSegGap = segmentGap * (segmentCount - 1);
     const segmentHeight = (height - totalSegGap) / segmentCount;
+    const glowSetting = this.glowIntensity();
 
     for (let i = 0; i < bandCount; i++) {
       const colX = x + i * (bandWidth + bandSpacing);
@@ -551,6 +625,8 @@ export class SpectrumAnalyserComponent implements AfterViewInit, OnDestroy {
 
       const activeSegments = Math.round(level * segmentCount);
       const peakSegmentIdx = Math.min(segmentCount - 1, Math.round(peak * segmentCount));
+      // Column fill ratio (0..1): glow becomes progressively more intense as more segments light up
+      const litFraction = segmentCount > 0 ? Math.min(1, activeSegments / segmentCount) : 0;
 
       // Draw vertical column segments
       for (let s = 0; s < segmentCount; s++) {
@@ -573,15 +649,28 @@ export class SpectrumAnalyserComponent implements AfterViewInit, OnDestroy {
         const isLit = s < activeSegments;
 
         if (isLit) {
-          // Lit Segment with VFD phosphor glow
+          // Lit Segment with dynamic VFD phosphor glow that scales with active segments & segment height
           ctx.save();
-          ctx.shadowColor = segGlow;
-          ctx.shadowBlur = 6 * this.dpr;
+          if (glowSetting > 0) {
+            // Subtle base glow (2.5px) that intensifies up to ~16px as more segments light up
+            const dynamicBlur = (2.5 + Math.pow(litFraction, 1.35) * 11.5 + ratio * 2.5) * glowSetting * this.dpr;
+            ctx.shadowColor = segGlow;
+            ctx.shadowBlur = dynamicBlur;
+          }
           ctx.fillStyle = segColor;
           ctx.fillRect(colX, segY, bandWidth, segmentHeight);
 
-          // Subtle bright center highlight on each phosphor block
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+          // Second pass bloom when column is heavily lit and glow is enabled
+          if (glowSetting > 0 && litFraction > 0.25) {
+            ctx.globalAlpha = Math.min(0.65, litFraction * 0.45 * glowSetting);
+            ctx.fillRect(colX, segY, bandWidth, segmentHeight);
+            ctx.globalAlpha = 1;
+          }
+
+          // Subtle bright center highlight on each phosphor block, brighter as column fills
+          const coreAlpha = Math.min(0.85, 0.22 + litFraction * 0.38 * glowSetting);
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = `rgba(255, 255, 255, ${coreAlpha.toFixed(2)})`;
           ctx.fillRect(colX + 1, segY + 1, bandWidth - 2, Math.max(1, segmentHeight * 0.3));
           ctx.restore();
         } else if (showGhost) {
@@ -607,8 +696,11 @@ export class SpectrumAnalyserComponent implements AfterViewInit, OnDestroy {
         }
 
         ctx.save();
-        ctx.shadowColor = peakGlow;
-        ctx.shadowBlur = 10 * this.dpr;
+        if (glowSetting > 0) {
+          const peakFraction = peakSegmentIdx / segmentCount;
+          ctx.shadowColor = peakGlow;
+          ctx.shadowBlur = (4 + peakFraction * 12) * glowSetting * this.dpr;
+        }
         ctx.fillStyle = '#ffffff'; // White-hot core
         ctx.fillRect(colX, peakSegY, bandWidth, segmentHeight);
 

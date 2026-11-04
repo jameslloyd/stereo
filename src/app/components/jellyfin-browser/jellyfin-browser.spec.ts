@@ -6,6 +6,7 @@ import { JellyfinService } from '../../services/jellyfin.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { SynthGeneratorService } from '../../services/synth-generator.service';
 import { JellyfinItem } from '../../models/jellyfin.models';
+import { clearAllAppCookies } from '../../utils/cookie-storage';
 
 describe('JellyfinBrowserComponent', () => {
   let component: JellyfinBrowserComponent;
@@ -14,6 +15,7 @@ describe('JellyfinBrowserComponent', () => {
   let audioEngine: AudioEngineService;
 
   beforeEach(async () => {
+    clearAllAppCookies();
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.clear();
@@ -39,6 +41,7 @@ describe('JellyfinBrowserComponent', () => {
   });
 
   afterEach(() => {
+    clearAllAppCookies();
     try {
       audioEngine?.stop();
       if (typeof window !== 'undefined' && window.localStorage) {

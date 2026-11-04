@@ -3,12 +3,14 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { JellyfinService } from './jellyfin.service';
 import { JellyfinItem } from '../models/jellyfin.models';
+import { clearAllAppCookies } from '../utils/cookie-storage';
 
 describe('JellyfinService', () => {
   let service: JellyfinService;
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
+    clearAllAppCookies();
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.clear();
@@ -34,6 +36,7 @@ describe('JellyfinService', () => {
     try {
       httpMock.verify();
     } finally {
+      clearAllAppCookies();
       try {
         if (typeof window !== 'undefined' && window.localStorage) {
           window.localStorage.clear();

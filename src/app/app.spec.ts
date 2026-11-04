@@ -4,9 +4,11 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { App } from './app';
 import { AudioEngineService } from './services/audio-engine.service';
 import { JellyfinService } from './services/jellyfin.service';
+import { clearAllAppCookies } from './utils/cookie-storage';
 
 describe('App', () => {
   beforeEach(async () => {
+    clearAllAppCookies();
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.clear();
@@ -26,6 +28,7 @@ describe('App', () => {
   });
 
   afterEach(() => {
+    clearAllAppCookies();
     try {
       const audioEngine = TestBed.inject(AudioEngineService);
       audioEngine?.stop();
@@ -47,7 +50,7 @@ describe('App', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.system-logo')?.textContent).toContain('KENWOOD');
+    expect(compiled.querySelector('.brand-logo')?.textContent).toContain('KENWOOD');
   });
 
   it('should render the 24-channel spectrum analyzer component', async () => {

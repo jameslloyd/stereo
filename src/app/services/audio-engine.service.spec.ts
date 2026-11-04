@@ -2,11 +2,13 @@ import { TestBed } from '@angular/core/testing';
 import { AudioEngineService } from './audio-engine.service';
 import { SynthGeneratorService } from './synth-generator.service';
 import { FREQUENCY_BANDS_24, Track } from '../models/audio.models';
+import { clearAllAppCookies } from '../utils/cookie-storage';
 
 describe('AudioEngineService', () => {
   let service: AudioEngineService;
 
   beforeEach(() => {
+    clearAllAppCookies();
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.clear();
@@ -21,6 +23,7 @@ describe('AudioEngineService', () => {
   });
 
   afterEach(() => {
+    clearAllAppCookies();
     try {
       service?.stop();
     } catch (e) {}

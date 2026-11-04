@@ -70,7 +70,66 @@
 .audio-standard-group {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #10141d;
+  border: 1px solid #202838;
+  border-radius: 4px;
+  padding: 4px 9px;
+  font-family: inherit;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  user-select: none;
+
+  .pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #64748b;
+
+    &.jellyfin {
+      background: #ef4444;
+    }
+  }
+
+  &.clickable {
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: #18202d;
+      border-color: #38bdf8;
+      color: #e2e8f0;
+    }
+
+    &.connected {
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.4);
+
+      .pill-dot.jellyfin {
+        background: #10b981;
+        box-shadow: 0 0 6px #10b981;
+      }
+    }
+
+    &.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+  }
+
+  .icon {
+    font-size: 0.85rem;
+    line-height: 1;
+  }
 }
 
 .compact-disc-logo {

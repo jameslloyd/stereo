@@ -1,46 +1,6 @@
 <div class="hifi-app-container">
   <main class="rack-cabinet" [class]="'rack-cabinet theme-' + vfdSettings.theme()">
     <div class="rack-stack">
-      <!-- Top Component Header Strip -->
-      <header class="rack-top-strip">
-        <div class="system-branding">
-          <span class="system-logo">KENWOOD</span>
-          <span class="system-tagline">SERIES 2400 HI-FI STEREO COMPONENT SYSTEM • 24-CHANNEL SEPARATES</span>
-        </div>
-
-        <div class="top-nav-actions">
-          <!-- Audio context / state badge -->
-          <div class="badge-pill" [class.live]="audioEngine.isPlaying()">
-            <span class="pill-dot"></span>
-            <span>{{ audioEngine.isPlaying() ? 'AUDIO ACTIVE' : 'STANDBY' }}</span>
-          </div>
-
-          <!-- Jellyfin Server Status Pill -->
-          <button
-            type="button"
-            class="badge-pill clickable"
-            [class.connected]="jellyfin.connectionStatus() === 'connected'"
-            (click)="openJellyfin()"
-            title="Open Jellyfin Server Browser"
-          >
-            <span class="pill-dot jellyfin"></span>
-            <span>JELLYFIN: {{ jellyfin.connectionStatus() | uppercase }}</span>
-          </button>
-
-          <!-- Queue Drawer Toggle -->
-          <button
-            type="button"
-            class="badge-pill clickable"
-            [class.active]="showQueueDrawer()"
-            (click)="toggleQueue()"
-            title="Toggle Playback Queue"
-          >
-            <span class="icon">≡</span>
-            <span>QUEUE ({{ audioEngine.queue().length }})</span>
-          </button>
-        </div>
-      </header>
-
       <!-- Separate 1: 24-Band Stereo Spectrum Analyzer (GE-2400) -->
       <section class="rack-unit-slot analyzer-slot">
         <app-spectrum-analyser></app-spectrum-analyser>
@@ -48,7 +8,11 @@
 
       <!-- Separate 2: Compact Disc Player Deck (DP-2400) -->
       <section class="rack-unit-slot deck-slot">
-        <app-player-bar (openJellyfin)="openJellyfin()"></app-player-bar>
+        <app-player-bar
+          [queueOpen]="showQueueDrawer()"
+          (openJellyfin)="openJellyfin()"
+          (toggleQueue)="toggleQueue()"
+        ></app-player-bar>
       </section>
 
       <!-- Separate 3: Stereo Synthesizer Radio Tuner (KT-2400) -->

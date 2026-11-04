@@ -3,6 +3,7 @@ import { RadioTunerComponent } from './radio-tuner';
 import { RadioTunerService } from '../../services/radio-tuner.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { SynthGeneratorService } from '../../services/synth-generator.service';
+import { clearAllAppCookies } from '../../utils/cookie-storage';
 
 describe('RadioTunerComponent', () => {
   let component: RadioTunerComponent;
@@ -10,6 +11,7 @@ describe('RadioTunerComponent', () => {
   let tunerService: RadioTunerService;
 
   beforeEach(async () => {
+    clearAllAppCookies();
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.clear();
@@ -29,6 +31,7 @@ describe('RadioTunerComponent', () => {
   });
 
   afterEach(() => {
+    clearAllAppCookies();
     try {
       const audioEngine = TestBed.inject(AudioEngineService);
       audioEngine?.stop();

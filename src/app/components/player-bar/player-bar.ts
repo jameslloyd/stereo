@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, computed, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioEngineService } from '../../services/audio-engine.service';
@@ -17,7 +17,9 @@ export class PlayerBarComponent {
   protected readonly jellyfin = inject(JellyfinService);
   public readonly vfdSettings = inject(VfdSettingsService);
 
+  @Input() queueOpen = false;
   @Output() openJellyfin = new EventEmitter<void>();
+  @Output() toggleQueue = new EventEmitter<void>();
 
   // 1 to 20 CD Music Calendar track numbers
   public readonly trackCalendar = Array.from({ length: 20 }, (_, i) => i + 1);

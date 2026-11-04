@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { VfdSettingsService, VFD_THEME_PALETTES } from './vfd-settings.service';
+import { clearAllAppCookies, getCookieItem } from '../utils/cookie-storage';
 
 describe('VfdSettingsService', () => {
   let service: VfdSettingsService;
 
   beforeEach(() => {
+    clearAllAppCookies();
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.clear();
@@ -19,6 +21,7 @@ describe('VfdSettingsService', () => {
   });
 
   afterEach(() => {
+    clearAllAppCookies();
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.clear();
@@ -59,5 +62,45 @@ describe('VfdSettingsService', () => {
 
     service.setPeakHold('slow');
     expect(service.peakHold()).toBe('slow');
+
+    service.setGlowIntensity(1.5);
+    expect(service.glowIntensity()).toBe(1.5);
+
+    service.setGlowIntensity(5.0);
+    expect(service.glowIntensity()).toBe(2.0);
+
+    service.setGlowIntensity(-1.0);
+    expect(service.glowIntensity()).toBe(0);
+  });
+
+  it('should persist settings to a local cookie and restore them', () => {
+    service.setTheme('ice-blue');
+    service.setLayout('mirror');
+    service.setPeakHold('infinite');
+    service.setSensitivity(1.9);
+    service.setGlowIntensity(1.4);
+    service.setGhostSegments(false);
+    service.setShowGrid(false);
+
+    expect(document.cookie).toContain('mplayer_vfd_settings=');
+    const cookieVal = getCookieItem('mplayer_vfd_settings');
+    expect(cookieVal).toBeTruthy();
+
+    // Clear localStorage to verify restoration specifically from cookie
+    window.localStorage.clear();
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [VfdSettingsService]
+    });
+    const restoredService = TestBed.inject(VfdSettingsService);
+
+    expect(restoredService.theme()).toBe('ice-blue');
+    expect(restoredService.layout()).toBe('mirror');
+    expect(restoredService.peakHold()).toBe('infinite');
+    expect(restoredService.sensitivity()).toBe(1.9);
+    expect(restoredService.glowIntensity()).toBe(1.4);
+    expect(restoredService.ghostSegments()).toBe(false);
+    expect(restoredService.showGrid()).toBe(false);
   });
 });

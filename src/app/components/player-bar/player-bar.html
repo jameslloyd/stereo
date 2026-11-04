@@ -8,6 +8,30 @@
     </div>
 
     <div class="audio-standard-group">
+      <!-- Jellyfin Server Status Pill -->
+      <button
+        type="button"
+        class="badge-pill clickable"
+        [class.connected]="jellyfin.connectionStatus() === 'connected'"
+        (click)="openJellyfin.emit()"
+        title="Open Jellyfin Server Browser"
+      >
+        <span class="pill-dot jellyfin"></span>
+        <span>JELLYFIN: {{ jellyfin.connectionStatus() | uppercase }}</span>
+      </button>
+
+      <!-- Queue Drawer Toggle -->
+      <button
+        type="button"
+        class="badge-pill clickable"
+        [class.active]="queueOpen"
+        (click)="toggleQueue.emit()"
+        title="Toggle Playback Queue"
+      >
+        <span class="icon">≡</span>
+        <span>QUEUE ({{ audioEngine.queue().length }})</span>
+      </button>
+
       <div class="compact-disc-logo" title="Compact Disc Digital Audio Standard">
         <svg viewBox="0 0 100 40" class="cd-logo-svg">
           <text x="5" y="16" font-family="'Orbitron', system-ui, sans-serif" font-weight="900" font-size="14" fill="#94a3b8" letter-spacing="1">COMPACT</text>

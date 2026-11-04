@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { JellyfinAuthResponse, JellyfinItem, JellyfinItemsResponse, JellyfinServerConfig } from '../models/jellyfin.models';
 import { Track } from '../models/audio.models';
+import { getCookieItem, removeCookieItem, setCookieItem } from '../utils/cookie-storage';
 
 const STORAGE_KEY = 'mplayer_jellyfin_config';
 const DEVICE_ID_KEY = 'mplayer_jellyfin_device_id';
@@ -22,28 +23,15 @@ export class JellyfinService {
   }
 
   private getStorageItem(key: string): string | null {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return window.localStorage.getItem(key);
-      }
-    } catch (e) {}
-    return null;
+    return getCookieItem(key);
   }
 
   private setStorageItem(key: string, value: string): void {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(key, value);
-      }
-    } catch (e) {}
+    setCookieItem(key, value);
   }
 
   private removeStorageItem(key: string): void {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.removeItem(key);
-      }
-    } catch (e) {}
+    removeCookieItem(key);
   }
 
   private getOrCreateDeviceId(): string {
