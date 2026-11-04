@@ -92,3 +92,18 @@ npm run build
 # Build for GitHub Pages
 npm run build:gh-pages
 ```
+
+---
+
+## Docker Deployment
+
+Build and run the production application in a container using Docker Compose:
+
+```bash
+# Build and start in detached mode (serves on http://localhost:8080 by default)
+docker compose up -d --build
+
+# Or specify a custom host port
+PORT=3000 docker compose up -d --build
+```
+

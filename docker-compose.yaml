@@ -1,0 +1,9 @@
+services:
+  stereo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kenwood-stereo
+    ports:
+      - "${PORT:-8080}:80"
+    restart: unless-stopped
